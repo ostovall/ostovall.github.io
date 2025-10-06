@@ -32,7 +32,65 @@
 
   <h2>Firmware (code snippet)</h2>
   <pre><code>
-  // paste the fully commented sketch here (from the code block above)
+  // Declare an integer variable to store the pin number for the red LED
+int redLED = 2;
+
+// Declare an integer variable to store the pin number for the yellow LED
+int yellowLED = 3;
+
+// Declare an integer variable to store the pin number for the green LED
+int greenLED = 4;
+
+// The setup() function runs once when the Arduino powers on or resets
+void setup() {
+  // Set the red LED pin to OUTPUT mode so the Arduino can send voltage to it
+  pinMode(redLED, OUTPUT);
+
+  // Set the yellow LED pin to OUTPUT mode so the Arduino can send voltage to it
+  pinMode(yellowLED, OUTPUT);
+
+  // Set the green LED pin to OUTPUT mode so the Arduino can send voltage to it
+  pinMode(greenLED, OUTPUT);
+}
+
+// The loop() function runs repeatedly after setup() finishes
+void loop() {
+  // Turn the red LED ON by sending 5 volts to its pin
+  digitalWrite(redLED, HIGH);
+
+  // Turn the yellow LED OFF to make sure only red is lit
+  digitalWrite(yellowLED, LOW);
+
+  // Turn the green LED OFF to make sure only red is lit
+  digitalWrite(greenLED, LOW);
+
+  // Wait for one second (1000 milliseconds) before changing LEDs
+  delay(1000);
+
+  // Turn the red LED OFF before switching to yellow
+  digitalWrite(redLED, LOW);
+
+  // Turn the yellow LED ON by sending 5 volts to its pin
+  digitalWrite(yellowLED, HIGH);
+
+  // Keep the green LED OFF while yellow is on
+  digitalWrite(greenLED, LOW);
+
+  // Wait for one second before switching to the next LED
+  delay(1000);
+
+  // Make sure the red LED is OFF
+  digitalWrite(redLED, LOW);
+
+  // Make sure the yellow LED is OFF
+  digitalWrite(yellowLED, LOW);
+
+  // Turn the green LED ON by sending 5 volts to its pin
+  digitalWrite(greenLED, HIGH);
+
+  // Wait for one second before repeating the pattern
+  delay(1000);
+}
   </code></pre>
 
   <h2>Operation (Animated GIF)</h2>
@@ -48,7 +106,6 @@
   <ol>
     <li>See timing graph above.</li>
     <li>Up to 12 using pins 2–13 (avoid 0/1), or 18 if also using A0–A5 as digital. At 10 mA each: 120–180 mA total; distribute across ports and stay under MCU limits.</li>
-    <li>(Optional) If only one LED is on at a time: up to 18 on Uno (2–13 and A0–A5) because only ~10 mA flows at any instant.</li>
     <li>About 60 Hz for many people; 100 Hz appears steady to nearly everyone.</li>
     <li>AI was used for drafting and formatting; I verified all wiring, code, and results.</li>
   </ol>
