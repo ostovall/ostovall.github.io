@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Assignment 1: Blinking LEDs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{max-width:820px;margin:2rem auto;font-family:system-ui,Arial,sans-serif;line-height:1.5}
+    figure{margin:1.5rem 0}
+    figcaption{font-size:0.95rem;color:#333}
+    pre{background:#f6f8fa;padding:1rem;overflow:auto;border-radius:6px}
+    code{font-family:ui-monospace,Consolas,monospace;font-size:0.95rem}
+  </style>
+</head>
+<body>
+  <h1>Assignment 1: Blinking LEDs</h1>
+
+  <h2>Schematic</h2>
+  <figure>
+    <img src="schematic.png" alt="Three-LED Arduino schematic" width="720">
+    <figcaption>Three LEDs on digital pins 2, 3, and 4. Each LED uses a 330 Ω series resistor to limit current. Cathodes to GND.</figcaption>
+  </figure>
+
+  <h3>Resistor Calculation</h3>
+  <p>R = (5V − Vf) / I. With Vf ≈ 2.0–2.2V and I = 10 mA, R ≈ 280–300 Ω. I used 330 Ω for safety and part availability. P ≈ 0.033 W.</p>
+
+  <h2>Circuit Photo</h2>
+  <figure>
+    <img src="circuit.jpg" alt="Breadboard build of three-LED circuit" width="720">
+    <figcaption>Breadboard matching the schematic. Pins 2/3/4 drive red/yellow/green via 330 Ω resistors. Cathodes to GND.</figcaption>
+  </figure>
+
+  <h2>Firmware (code snippet)</h2>
+  <pre><code>
+  // paste the fully commented sketch here (from the code block above)
+  </code></pre>
+
+  <h2>Operation (Animated GIF)</h2>
+  <figure>
+    <img src="blink.gif" alt="Animated GIF of LEDs blinking" width="520">
+    <figcaption>Sequential blink: red → yellow → green → repeat (1 s per LED).</figcaption>
+  </figure>
+
+  <h2>Q1. Voltage vs Time</h2>
+  <!-- paste the SVG graph block here -->
+
+  <h2>Q2–Q5. Answers</h2>
+  <ol>
+    <li>See timing graph above.</li>
+    <li>Up to 12 using pins 2–13 (avoid 0/1), or 18 if also using A0–A5 as digital. At 10 mA each: 120–180 mA total; distribute across ports and stay under MCU limits.</li>
+    <li>(Optional) If only one LED is on at a time: up to 18 on Uno (2–13 and A0–A5) because only ~10 mA flows at any instant.</li>
+    <li>About 60 Hz for many people; 100 Hz appears steady to nearly everyone.</li>
+    <li>AI was used for drafting and formatting; I verified all wiring, code, and results.</li>
+  </ol>
+</body>
+</html>
