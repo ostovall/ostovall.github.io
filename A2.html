@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assignment 2 – Arduino LED Circuit</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f8f8f8; color: #222; line-height: 1.6; margin: 40px; }
+    h1, h2, h3 { color: #004aad; }
+    code { background: #f0f0f0; padding: 3px 5px; border-radius: 4px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    img { max-width: 100%; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+  </style>
+</head>
+
+<body>
+  <h1>Assignment 2 – Arduino LED Circuit and Code</h1>
+
+  <h2>Overview</h2>
+  <p>
+    This project demonstrates a basic Arduino circuit that uses three LEDs and a button input to create interactive lighting patterns 
+    using digital and analog functions. The program cycles two LEDs with digital control and fades a third LED using PWM. 
+    The circuit uses resistors to limit LED current and a pull-down resistor for the button input.
+  </p>
+
+  <h2>Schematic and Circuit</h2>
+  <img src="A_digital_schematic_displays_an_Arduino-based_LED_.png" alt="Arduino LED Circuit Schematic">
+  <p><strong>Components:</strong></p>
+  <ul>
+    <li>Arduino Uno</li>
+    <li>3 LEDs (Red, Yellow, Green)</li>
+    <li>3 × 220Ω resistors (LED current limiters)</li>
+    <li>1 × 10kΩ resistor (button pull-down)</li>
+    <li>1 Pushbutton</li>
+    <li>Breadboard and jumper wires</li>
+  </ul>
+
+  <h3>Resistor Calculation</h3>
+  <p>
+    For each LED:<br>
+    R = (5V − 2V) / 0.015A = 200Ω → use <strong>220Ω</strong> (standard value)
+  </p>
+  <p>
+    For the button:<br>
+    A 10kΩ pull-down resistor ensures the pin reads <code>LOW</code> when not pressed, 
+    drawing only 0.5mA of current.
+  </p>
+
+  <h2>Code</h2>
+  <pre><code>
+// --- Define pins ---
+const int buttonPin = 2;                 // the button input pin
+const int ledPins[3] = {9, 10, 11};      // LED output pins (PWM pins support analogWrite)
+
+int buttonState = LOW;
+
+void setup() {
+  pinMode(buttonPin, INPUT);
+  for (int i = 0; i < 3; i++) {
+    pinMode(ledPins[i], OUTPUT);
+  }
+}
+
+void loop() {
+  buttonState = digitalRead(buttonPin);
+
+  if (buttonState == HIGH) {
+    for (int i = 0; i < 2; i++) {
+      digitalWrite(ledPins[i], HIGH);
+      delay(150);
+      digitalWrite(ledPins[i], LOW);
+      delay(150);
+    }
+
+    for (int brightness = 0; brightness <= 255; brightness += 5) {
+      analogWrite(ledPins[2], brightness);
+      delay(15);
+    }
+    for (int brightness = 255; brightness >= 0; brightness -= 5) {
+      analogWrite(ledPins[2], brightness);
+      delay(15);
+    }
+
+  } else {
+    for (int i = 0; i < 3; i++) {
+      digitalWrite(ledPins[i], LOW);
+    }
+  }
+}
+  </code></pre>
+
+  <h2>PWM Voltage Chart</h2>
+  <img src="pwm_chart.png" alt="PWM Voltage Chart">
+  <p>
+    The chart below shows PWM voltage pulses across an LED for <code>analogWrite(64)</code>,
+    <code>analogWrite(128)</code>, and <code>analogWrite(255)</code>.
+  </p>
+
+  <h2>Battery Life Calculation</h2>
+  <p>
+    Average current draw ≈ 35mA (15mA per LED + 20mA Arduino idle).<br>
+    1200 mAh / 35 mA ≈ <strong>34 hours</strong> runtime.<br><br>
+    Worst case (all LEDs on): 1200 mAh / 65 mA ≈ <strong>18 hours</strong>.
+  </p>
+
+  <h2>Measured LED Voltage</h2>
+  <p>
+    Measured forward voltage (red LED): <strong>1.95V</strong><br>
+    Theoretical forward voltage: <strong>~2.0V</strong><br>
+    Difference is within typical tolerance range.
+  </p>
+
+  <h2>Animated GIF of Operation</h2>
+  <p>
+    When the button is pressed, two LEDs blink sequentially, and the third LED fades in and out smoothly using PWM.
+  </p>
+  <p><em>(Insert your converted GIF file here once uploaded)</em></p>
+
+  <h2>Reflection on AI Use</h2>
+  <p>
+    Yes, I used AI (ChatGPT) to help with structuring the documentation, writing resistor and battery explanations, 
+    and formatting this HTML page. The circuit and code were built and tested manually.
+  </p>
+
+  <hr>
+  <p><strong>Author:</strong> Olivia Stovall<br>
+  <strong>Course:</strong> Physical Computing – Assignment 2</p>
+
+</body>
+</html>
+
