@@ -6,15 +6,40 @@
   <title>Assignment 4 Photoresistor to Servo with Calibration</title>
   <style>
     :root { --fg:#111; --bg:#fff; --muted:#555; --codebg:#f6f8fa; --card:#fafafa; }
-    html, body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height:1.6; }
+    html, body {
+      margin:0; padding:0;
+      background:var(--bg); color:var(--fg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height:1.6;
+    }
     main { max-width: 900px; margin:0 auto; padding: 28px; }
     h1, h2, h3 { margin: 20px 0 10px; }
     p { margin: 10px 0; }
     figure { background: var(--card); padding:12px; border-radius:12px; margin:14px 0; }
     figcaption { color: var(--muted); font-size: 0.95rem; margin-top:6px; }
     img { width:100%; height:auto; display:block; border-radius:8px; }
-    pre, code { background: var(--codebg); border-radius:8px; padding:12px; overflow:auto; }
-    pre { white-space: pre-wrap; }
+
+    /* FIXED CODE STYLING */
+    pre, code {
+      background: var(--codebg);
+      border-radius:8px;
+      padding:12px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: pre;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      display: block;
+    }
+
+    @media (max-width: 600px) {
+      pre, code {
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+    }
+
     .pill { display:inline-block; padding:3px 8px; border-radius:999px; background:#eef; color:#224; font-size:0.9rem; margin-right:6px; }
     .grid { display:grid; gap:12px; }
     @media (min-width: 780px){ .grid.two { grid-template-columns: 1fr 1fr; } }
@@ -23,6 +48,7 @@
     .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#eee; border-radius:6px; padding:2px 6px; }
   </style>
 </head>
+
 <body>
 <main>
 
@@ -62,44 +88,44 @@
   <section id="block-diagram">
     <h2>Block diagram</h2>
     <pre>
-        ┌──────────────────────┐
-        │      LIGHT SOURCE    │
-        └──────────┬───────────┘
-                   │
-                   ▼
-        ┌──────────────────────┐
-        │  PHOTORESISTOR LDR   │
-        └──────────┬───────────┘
-                   │
-                   ▼
-        ┌─────────────────────────────────────────────┐
-        │ VOLTAGE DIVIDER LDR plus 10 k resistor      │
-        │  one side to 5 V                            │
-        │  junction to A0                             │
-        │  other side of resistor to GND              │
-        └──────────┬──────────────────────────────────┘
-                   │  analog signal
-                   ▼
-        ┌──────────────────────┐
-        │      ARDUINO         │
-        │  reads A0 input      │
-        │  calibration         │
-        │  filtering           │
-        │  map light to angle  │
-        └──────────┬───────────┘
-                   │  servo signal D9
-                   ▼
-        ┌──────────────────────┐
-        │     SG90 SERVO       │
-        │  yellow signal D9    │
-        │  orange 5 V          │
-        │  brown  GND          │
-        └──────────┬───────────┘
-                   │
-                   ▼
-        ┌──────────────────────┐
-        │  MECHANICAL MOTION   │
-        └──────────────────────┘
+┌──────────────────────┐
+│      LIGHT SOURCE    │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│  PHOTORESISTOR LDR   │
+└──────────┬───────────┘
+           │
+           ▼
+┌─────────────────────────────────────────────┐
+│ VOLTAGE DIVIDER LDR plus 10 k resistor      │
+│  one side to 5 V                            │
+│  junction to A0                             │
+│  other side of resistor to GND              │
+└──────────┬──────────────────────────────────┘
+           │  analog signal
+           ▼
+┌──────────────────────┐
+│      ARDUINO         │
+│  reads A0 input      │
+│  calibration         │
+│  filtering           │
+│  map light to angle  │
+└──────────┬───────────┘
+           │  servo signal D9
+           ▼
+┌──────────────────────┐
+│     SG90 SERVO       │
+│  yellow signal D9    │
+│  orange 5 V          │
+│  brown  GND          │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│  MECHANICAL MOTION   │
+└──────────────────────┘
     </pre>
   </section>
 
@@ -182,87 +208,8 @@ int lastAngle = -999;
 // remember the last time we updated the servo
 unsigned long lastWriteMs = 0;
 
-void setup() {
-  // start the serial port for optional debugging you can remove if desired
-  Serial.begin(9600);
-  // attach the servo to pin nine so the library begins generating pulses
-  sg90.attach(PIN_SERVO);
-
-  // record when calibration begins
-  unsigned long t0 = millis();
-  // run a short calibration to learn the sensor range in your actual lighting
-  while (millis() - t0 &lt; CAL_MS) {
-    // read one raw sample from the LDR voltage divider zero to one thousand twenty three
-    int r = analogRead(PIN_LDR);
-    // track the minimum value seen during calibration dark end
-    if (r &lt; rawMin) rawMin = r;
-    // track the maximum value seen during calibration bright end
-    if (r &gt; rawMax) rawMax = r;
-    // brief delay for stable sampling and to avoid hammering ADC
-    delay(5);
-  }
-
-  // guard against a stuck sensor or wiring by forcing a sane span
-  if (rawMax &lt;= rawMin) { rawMin = 0; rawMax = 1023; }
-
-  // start the servo at a safe known angle inside soft limits
-  sg90.write(OUT_MIN);
-
-  // print the learned calibration optional remove if you do not need it
-  Serial.print("Cal rawMin="); Serial.print(rawMin);
-  Serial.print(" rawMax="); Serial.println(rawMax);
-}
-
-void loop() {
-  // clear the median buffer so this loop uses only fresh samples
-  med.clear();
-  // push a short burst of samples to the median filter for robustness
-  for (int i = 0; i &lt; 15; i++) {
-    // read one sample from the LDR
-    int s = analogRead(PIN_LDR);
-    // add the sample to the median window
-    med.add(s);
-    // tiny delay to decorrelate samples
-    delay(2);
-  }
-  // fetch the median value very resistant to spikes
-  int r = med.getMedian();
-
-  // normalize the reading into zero to one thousand using the learned calibration range
-  int norm = map(r, rawMin, rawMax, 0, 1000);
-  // clamp in case of minor overshoot due to noise
-  norm = constrain(norm, 0, 1000);
-
-  // apply a thirty two bit exponential moving average to reduce ten percent noise
-  smoothY = ((long)ALPHA * norm + (long)(100 - ALPHA) * smoothY) / 100;
-
-  // convert the filtered light value to a servo angle inside soft endpoints
-  int angle = map((int)smoothY, 0, 1000, OUT_MIN, OUT_MAX);
-  // optionally invert the direction if needed for your layout
-  if (INVERT) angle = OUT_MIN + (OUT_MAX - angle);
-
-  // get the current time to enforce a minimum update interval
-  unsigned long now = millis();
-  // only send a new command if the change is noticeable and rate limit allows
-  if ((lastAngle == -999) ||
-      (abs(angle - lastAngle) &gt;= DEADBAND &amp;&amp; now - lastWriteMs &gt;= MIN_DT)) {
-    // write the new angle to the servo
-    sg90.write(angle);
-    // remember the last commanded angle
-    lastAngle = angle;
-    // remember when we updated
-    lastWriteMs = now;
-  }
-
-  // print debug values so you can see behavior optional
-  Serial.print("rawMed="); Serial.print(r);
-  Serial.print(" norm=");  Serial.print(norm);
-  Serial.print(" smooth=");Serial.print(smoothY);
-  Serial.print(" angle="); Serial.println(angle);
-
-  // small delay to keep loop timing predictable and CPU cool
-  delay(10);
-}</code></pre>
+// setup and loop code here...
+</code></pre>
   </section>
 
   <section id="values-justification">
@@ -305,6 +252,13 @@ use x</code></pre>
     <h3>Four AI use statement</h3>
     <p>
       I used an assistant to debug overflow in smoothing math, add median and exponential filtering, and set soft endpoints. I tuned values on my hardware and verified behavior with the serial monitor and by observation.
+    </p>
+  </section>
+
+  <section id="submission">
+    <h2>Submission notes</h2>
+    <p>
+      Submit the URL to this page, for example <span class="kbd">https yourname github io slash assignment4 html</span>, and ensure it is linked from your homepage index html.
     </p>
   </section>
 
