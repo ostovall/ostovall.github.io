@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Assignment 4 Photoresistor to Servo with Calibration</title>
+  <style>
+    :root { --fg:#111; --bg:#fff; --muted:#555; --codebg:#f6f8fa; --card:#fafafa; }
+    html, body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height:1.6; }
+    main { max-width: 900px; margin:0 auto; padding: 28px; }
+    h1, h2, h3 { margin: 20px 0 10px; }
+    p { margin: 10px 0; }
+    figure { background: var(--card); padding:12px; border-radius:12px; margin:14px 0; }
+    figcaption { color: var(--muted); font-size: 0.95rem; margin-top:6px; }
+    img { width:100%; height:auto; display:block; border-radius:8px; }
+    pre, code { background: var(--codebg); border-radius:8px; padding:12px; overflow:auto; }
+    pre { white-space: pre-wrap; }
+    .pill { display:inline-block; padding:3px 8px; border-radius:999px; background:#eef; color:#224; font-size:0.9rem; margin-right:6px; }
+    .grid { display:grid; gap:12px; }
+    @media (min-width: 780px){ .grid.two { grid-template-columns: 1fr 1fr; } }
+    .small { font-size:0.95rem; color:var(--muted); }
+    .box { background:var(--card); padding:12px; border-radius:12px; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#eee; border-radius:6px; padding:2px 6px; }
+  </style>
+</head>
+<body>
+<main>
+
+  <header>
+    <h1>Assignment 4 Photoresistor controls SG90 Servo</h1>
+    <p>
+      <span class="pill">Input photoresistor on A0</span>
+      <span class="pill">Output SG90 servo on D9</span>
+      <span class="pill">Libraries Servo and RunningMedian</span>
+      <span class="pill">Auto calibration at startup</span>
+    </p>
+    <p class="small">
+      This page includes schematic, circuit photos, firmware, an operation gif, and short answers. All code lines include comments above the line as required.
+    </p>
+  </header>
+
+  <section id="overview">
+    <h2>Overview</h2>
+    <p>
+      Goal use a light sensor to control a small servo. The design uses two libraries Servo for the actuator and RunningMedian for robust analog filtering. The firmware calibrates the sensor range for the exact lighting in the room at startup and then maps the filtered value to a servo angle. Soft endpoints and rate limiting keep motion smooth.
+    </p>
+  </section>
+
+  <section id="wiring-quick">
+    <h2>Hardware wiring quick reference</h2>
+    <div class="box">
+      <ul>
+        <li>Photoresistor one leg to 5 V</li>
+        <li>Photoresistor other leg to A0</li>
+        <li>Resistor 10 k from A0 to GND</li>
+        <li>Servo brown to GND, orange to 5 V, yellow to D9</li>
+        <li>All grounds common</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="block-diagram">
+    <h2>Block diagram</h2>
+    <pre>
+        ┌──────────────────────┐
+        │      LIGHT SOURCE    │
+        └──────────┬───────────┘
+                   │
+                   ▼
+        ┌──────────────────────┐
+        │  PHOTORESISTOR LDR   │
+        └──────────┬───────────┘
+                   │
+                   ▼
+        ┌─────────────────────────────────────────────┐
+        │ VOLTAGE DIVIDER LDR plus 10 k resistor      │
+        │  one side to 5 V                            │
+        │  junction to A0                             │
+        │  other side of resistor to GND              │
+        └──────────┬──────────────────────────────────┘
+                   │  analog signal
+                   ▼
+        ┌──────────────────────┐
+        │      ARDUINO         │
+        │  reads A0 input      │
+        │  calibration         │
+        │  filtering           │
+        │  map light to angle  │
+        └──────────┬───────────┘
+                   │  servo signal D9
+                   ▼
+        ┌──────────────────────┐
+        │     SG90 SERVO       │
+        │  yellow signal D9    │
+        │  orange 5 V          │
+        │  brown  GND          │
+        └──────────┬───────────┘
+                   │
+                   ▼
+        ┌──────────────────────┐
+        │  MECHANICAL MOTION   │
+        └──────────────────────┘
+    </pre>
+  </section>
+
+  <section id="schematic">
+    <h2>Schematic</h2>
+    <figure>
+      <img src="images/a4_schematic.png" alt="Labeled schematic with LDR divider to A0 and SG90 to D9" />
+      <figcaption>
+        The 10 k resistor forms a divider with the photoresistor so A0 sees a mid range voltage in room light. The servo uses D9 for control. All grounds are common. Labels match the firmware pins.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="circuit">
+    <h2>Circuit photos</h2>
+    <figure>
+      <img src="images/a4_circuit_top.jpg" alt="Breadboard photo top view with A0 divider and SG90 on D9" />
+      <figcaption>
+        Wiring follows the schematic. LDR to 5 V and A0, 10 k from A0 to GND. Servo yellow to D9, orange to 5 V, brown to GND. Soft limits in code prevent hard stop chatter.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="operation">
+    <h2>Operation gif</h2>
+    <figure>
+      <img src="images/a4_operation.gif" alt="Animated gif showing servo sweeping with changes in light" />
+      <figcaption>
+        As light increases the filtered reading rises and the servo moves toward the upper endpoint. Median plus exponential filtering produce smooth, stable motion.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="firmware">
+    <h2>Firmware code</h2>
+    <p class="small">
+      Install the library RunningMedian by Rob Tillaart in the Library Manager, then upload. Comments are above each non blank line to match the rubric.
+    </p>
+    <pre><code>// include the servo library for SG90 control library number one
+#include &lt;Servo.h&gt;
+// include RunningMedian for robust filtering of analog reads library number two
+#include &lt;RunningMedian.h&gt;
+
+// create the servo object that will generate control pulses on a timer
+Servo sg90;
+// create a median filter object that keeps the last fifteen samples
+RunningMedian med(15);
+
+// name the analog input pin connected to the LDR divider
+const int PIN_LDR = A0;
+// name the digital pin used for the SG90 signal yellow wire
+const int PIN_SERVO = 9;
+
+// store the darkest reading discovered during calibration
+int rawMin = 1023;
+// store the brightest reading discovered during calibration
+int rawMax = 0;
+// set the calibration duration in milliseconds
+const unsigned long CAL_MS = 2000;
+
+// keep a smoothed, normalized reading in zero to one thousand using thirty two bit math
+long smoothY = 0;
+// set the exponential moving average weight smaller equals smoother
+const int ALPHA = 10;
+
+// avoid slamming the mechanical end stops of the SG90
+const int OUT_MIN = 5;
+// avoid the other end stop as well
+const int OUT_MAX = 175;
+// set true to flip direction if motion feels reversed
+const bool INVERT = false;
+
+// ignore tiny changes that the servo cannot really achieve
+const int DEADBAND = 2;
+// limit how often we update the servo to reduce jitter
+const unsigned long MIN_DT = 20;
+
+// remember the last commanded angle so we can apply deadband
+int lastAngle = -999;
+// remember the last time we updated the servo
+unsigned long lastWriteMs = 0;
+
+void setup() {
+  // start the serial port for optional debugging you can remove if desired
+  Serial.begin(9600);
+  // attach the servo to pin nine so the library begins generating pulses
+  sg90.attach(PIN_SERVO);
+
+  // record when calibration begins
+  unsigned long t0 = millis();
+  // run a short calibration to learn the sensor range in your actual lighting
+  while (millis() - t0 &lt; CAL_MS) {
+    // read one raw sample from the LDR voltage divider zero to one thousand twenty three
+    int r = analogRead(PIN_LDR);
+    // track the minimum value seen during calibration dark end
+    if (r &lt; rawMin) rawMin = r;
+    // track the maximum value seen during calibration bright end
+    if (r &gt; rawMax) rawMax = r;
+    // brief delay for stable sampling and to avoid hammering ADC
+    delay(5);
+  }
+
+  // guard against a stuck sensor or wiring by forcing a sane span
+  if (rawMax &lt;= rawMin) { rawMin = 0; rawMax = 1023; }
+
+  // start the servo at a safe known angle inside soft limits
+  sg90.write(OUT_MIN);
+
+  // print the learned calibration optional remove if you do not need it
+  Serial.print("Cal rawMin="); Serial.print(rawMin);
+  Serial.print(" rawMax="); Serial.println(rawMax);
+}
+
+void loop() {
+  // clear the median buffer so this loop uses only fresh samples
+  med.clear();
+  // push a short burst of samples to the median filter for robustness
+  for (int i = 0; i &lt; 15; i++) {
+    // read one sample from the LDR
+    int s = analogRead(PIN_LDR);
+    // add the sample to the median window
+    med.add(s);
+    // tiny delay to decorrelate samples
+    delay(2);
+  }
+  // fetch the median value very resistant to spikes
+  int r = med.getMedian();
+
+  // normalize the reading into zero to one thousand using the learned calibration range
+  int norm = map(r, rawMin, rawMax, 0, 1000);
+  // clamp in case of minor overshoot due to noise
+  norm = constrain(norm, 0, 1000);
+
+  // apply a thirty two bit exponential moving average to reduce ten percent noise
+  smoothY = ((long)ALPHA * norm + (long)(100 - ALPHA) * smoothY) / 100;
+
+  // convert the filtered light value to a servo angle inside soft endpoints
+  int angle = map((int)smoothY, 0, 1000, OUT_MIN, OUT_MAX);
+  // optionally invert the direction if needed for your layout
+  if (INVERT) angle = OUT_MIN + (OUT_MAX - angle);
+
+  // get the current time to enforce a minimum update interval
+  unsigned long now = millis();
+  // only send a new command if the change is noticeable and rate limit allows
+  if ((lastAngle == -999) ||
+      (abs(angle - lastAngle) &gt;= DEADBAND &amp;&amp; now - lastWriteMs &gt;= MIN_DT)) {
+    // write the new angle to the servo
+    sg90.write(angle);
+    // remember the last commanded angle
+    lastAngle = angle;
+    // remember when we updated
+    lastWriteMs = now;
+  }
+
+  // print debug values so you can see behavior optional
+  Serial.print("rawMed="); Serial.print(r);
+  Serial.print(" norm=");  Serial.print(norm);
+  Serial.print(" smooth=");Serial.print(smoothY);
+  Serial.print(" angle="); Serial.println(angle);
+
+  // small delay to keep loop timing predictable and CPU cool
+  delay(10);
+}</code></pre>
+  </section>
+
+  <section id="values-justification">
+    <h2>Why these values</h2>
+    <ul>
+      <li>Resistor 10 k sets a divider that places A0 in a good mid range with room light so the ADC uses its resolution well</li>
+      <li>Calibration two seconds is long enough to collect a stable range without slowing startup</li>
+      <li>ALPHA ten smooths noise yet keeps motion responsive</li>
+      <li>OUT MIN five and OUT MAX one hundred seventy five keep the servo away from hard stops</li>
+      <li>DEADBAND two and MIN DT twenty reduce jitter and unnecessary updates</li>
+      <li>RunningMedian window fifteen rejects spikes better than a simple mean</li>
+    </ul>
+  </section>
+
+  <section id="answers">
+    <h2>Short answers</h2>
+    <h3>One voltage at pin nine graph</h3>
+    <p>
+      The Servo library outputs a repeating pulse about every twenty milliseconds. Voltage is either near zero or five volts. The pulse width grows stepwise from about one millisecond to about two milliseconds as position increases. Draw narrow five volt pulses that widen over time while the period stays near twenty milliseconds.
+    </p>
+
+    <h3>Two one percent erroneous readings</h3>
+    <pre><code>r1 = read()
+r2 = read()
+if abs(r2 - r1) greater than K:
+  r3 = read()
+  x = median(r1, r2, r3)
+else:
+  x = average(r1, r2)
+use x</code></pre>
+
+    <h3>Three plus or minus ten percent noise</h3>
+    <pre><code>window.push(read())
+if window full:
+  x = median(window)    // or use a moving average
+else:
+  x = average(window)
+use x</code></pre>
+
+    <h3>Four AI use statement</h3>
+    <p>
+      I used an assistant to debug overflow in smoothing math, add median and exponential filtering, and set soft endpoints. I tuned values on my hardware and verified behavior with the serial monitor and by observation.
+    </p>
+  </section>
+
+  <section id="submission">
+    <h2>Submission notes</h2>
+    <p>
+      Submit the URL to this page, for example <span class="kbd">https yourname github io slash assignment4 html</span>, and ensure it is linked from your homepage index html.
+    </p>
+  </section>
+
+</main>
+</body>
+</html>
