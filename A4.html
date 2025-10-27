@@ -227,9 +227,7 @@ unsigned long lastWriteMs = 0;
   <section id="answers">
     <h2>Short answers</h2>
     <h3>One voltage at pin nine graph</h3>
-    <p>
-      The Servo library outputs a repeating pulse about every twenty milliseconds. Voltage is either near zero or five volts. The pulse width grows stepwise from about one millisecond to about two milliseconds as position increases. Draw narrow five volt pulses that widen over time while the period stays near twenty milliseconds.
-    </p>
+    <img src="images/assignment4_servo_voltage_graph.png" alt="Graph showing servo control pulse width increasing from 1 ms to 2 ms over time">
 
     <h3>Two one percent erroneous readings</h3>
     <pre><code>r1 = read()
@@ -251,7 +249,7 @@ use x</code></pre>
 
     <h3>Four AI use statement</h3>
     <p>
-      I used an assistant to debug overflow in smoothing math, add median and exponential filtering, and set soft endpoints. I tuned values on my hardware and verified behavior with the serial monitor and by observation.
+      I used an assistant to debug overflow in smoothing math, add median and exponential filtering, and set soft endpoints. I also used it to generate images because i did not have access to drawing utensils at the time of completing the assignment. I tuned values on my hardware and verified behavior with the serial monitor and by observation.
     </p>
   </section>
 
