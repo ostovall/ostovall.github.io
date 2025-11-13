@@ -1,130 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Assignment 2 – Arduino LED Circuit</title>
   <style>
-    body { font-family: Arial, sans-serif; background-color: #f8f8f8; color: #222; line-height: 1.6; margin: 40px; }
-    h1, h2, h3 { color: #004aad; }
-    code { background: #f0f0f0; padding: 3px 5px; border-radius: 4px; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
-    img { max-width: 100%; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+    body{font-family:Arial, sans-serif;background:#f8f8f8;color:#222;line-height:1.6;margin:40px}
+    h1,h2,h3{color:#004aad}
+    code{background:#f0f0f0;padding:3px 5px;border-radius:4px}
+    pre{background:#f4f4f4;padding:10px;border-radius:5px;overflow-x:auto}
+    img{max-width:100%;margin:10px 0;border:1px solid #ccc;border-radius:4px}
+    figure{margin:0}
+    figcaption{font-style:italic;font-size:.9em;text-align:center;margin-bottom:16px}
+    .math{background:#fff;border-left:4px solid #004aad;padding:10px 12px;border-radius:4px}
   </style>
 </head>
-
 <body>
-  <h1>Assignment 2 – Arduino LED Circuit and Code</h1>
 
-  <h2>Overview</h2>
-  <p>
-    This project demonstrates a basic Arduino circuit that uses three LEDs and a button input to create interactive lighting patterns 
-    using digital and analog functions. The program cycles two LEDs with digital control and fades a third LED using PWM. 
-    The circuit uses resistors to limit LED current and a pull-down resistor for the button input.
-  </p>
+<h1>Assignment 2 – Arduino LED Circuit and Code</h1>
 
-  <h2>Schematic and Circuit</h2>
-  <img src="A_digital_schematic_displays_an_Arduino-based_LED_.png" alt="Arduino LED Circuit Schematic">
-  <p><strong>Components:</strong></p>
-  <ul>
-    <li>Arduino Uno</li>
-    <li>3 LEDs (Red, Yellow, Green)</li>
-    <li>3 × 220Ω resistors (LED current limiters)</li>
-    <li>1 × 10kΩ resistor (button pull-down)</li>
-    <li>1 Pushbutton</li>
-    <li>Breadboard and jumper wires</li>
-  </ul>
+<h2>Overview</h2>
+<p>
+  This project uses three LEDs and a pushbutton. When the button is pressed, two LEDs blink using
+  <code>digitalWrite()</code> and the third LED fades using PWM with <code>analogWrite()</code>.
+  Resistors limit current for the LEDs, and a 10 kΩ pull-down defines the button’s logic level.
+</p>
 
-  <h3>Resistor Calculation</h3>
-  <p>
-    For each LED:<br>
-    R = (5V − 2V) / 0.015A = 200Ω → use <strong>220Ω</strong> (standard value)
-  </p>
-  <p>
-    For the button:<br>
-    A 10kΩ pull-down resistor ensures the pin reads <code>LOW</code> when not pressed, 
-    drawing only 0.5mA of current.
-  </p>
+<h2>Schematic and Circuit</h2>
 
-  <h2>Code</h2>
-  <pre><code>
-// --- Define pins ---
-const int buttonPin = 2;                 // the button input pin
-const int ledPins[3] = {9, 10, 11};      // LED output pins (PWM pins support analogWrite)
+<figure>
+  <img src="schematicA2.png" alt="Schematic with three LEDs on pins 9–11 via 220Ω, button on pin 2 with 10kΩ pull-down"/>
+  <figcaption>Figure 1 — Schematic: LEDs on pins 9, 10, 11 with 220&nbsp;Ω resistors; pushbutton to pin 2 with 10&nbsp;kΩ pull-down to GND.</figcaption>
+</figure>
 
+<figure>
+  <img src="circuitA2.png" alt="Photo of the assembled breadboard circuit matching the schematic"/>
+  <figcaption>Figure 2 — Physical circuit: photo of the breadboard wired to an Arduino Uno compatible board.</figcaption>
+</figure>
+
+<h3>Parts</h3>
+<ul>
+  <li>Arduino Uno (compatible)</li>
+  <li>3 × LEDs (red, yellow, green)</li>
+  <li>3 × 220&nbsp;Ω resistors (LED current limiters)</li>
+  <li>1 × 10&nbsp;kΩ resistor (button pull-down)</li>
+  <li>1 × pushbutton, breadboard, jumpers</li>
+</ul>
+
+<h3>Why these resistor values?</h3>
+<div class="math">
+  <p><strong>LED current limit:</strong> assume red LED forward voltage ≈ 2.0&nbsp;V, desired I ≈ 15&nbsp;mA.</p>
+  <p><code>R ≈ (5&nbsp;V − 2.0&nbsp;V) / 0.015&nbsp;A = 200&nbsp;Ω</code> → nearest E12 value: <strong>220&nbsp;Ω</strong> (safer, ~13.6&nbsp;mA).</p>
+  <p><strong>Button pull-down:</strong> 10&nbsp;kΩ ensures the input reads LOW when not pressed and limits press current to <code>I = 5&nbsp;V / 10&nbsp;kΩ = 0.5&nbsp;mA</code>.</p>
+</div>
+
+<h2>Firmware</h2>
+<pre><code>// define the digital pin that reads the pushbutton
+const int buttonPin = 2;
+
+// define the three LED pins (PWM-capable so we can fade pin 11)
+const int ledPins[3] = {9, 10, 11};
+
+// hold the current button reading
 int buttonState = LOW;
 
+// run once at power-up/reset
 void setup() {
+  // configure button pin as input (external 10k pull-down used)
   pinMode(buttonPin, INPUT);
-  for (int i = 0; i < 3; i++) {
+
+  // configure each LED pin as an output
+  for (int i = 0; i &lt; 3; i++) {
     pinMode(ledPins[i], OUTPUT);
   }
 }
 
+// run repeatedly forever
 void loop() {
+  // read the button state (HIGH when pressed)
   buttonState = digitalRead(buttonPin);
 
+  // if pressed, execute the blink + fade sequence
   if (buttonState == HIGH) {
-    for (int i = 0; i < 2; i++) {
+
+    // blink the first two LEDs with digitalWrite
+    for (int i = 0; i &lt; 2; i++) {
+      // turn LED on
       digitalWrite(ledPins[i], HIGH);
+      // wait 150 ms
       delay(150);
+      // turn LED off
       digitalWrite(ledPins[i], LOW);
+      // wait 150 ms
       delay(150);
     }
 
-    for (int brightness = 0; brightness <= 255; brightness += 5) {
+    // fade the third LED up with PWM
+    for (int brightness = 0; brightness &lt;= 255; brightness += 5) {
+      // set duty cycle (0..255)
       analogWrite(ledPins[2], brightness);
-      delay(15);
-    }
-    for (int brightness = 255; brightness >= 0; brightness -= 5) {
-      analogWrite(ledPins[2], brightness);
+      // small pause for smooth transition
       delay(15);
     }
 
+    // fade the third LED down with PWM
+    for (int brightness = 255; brightness &gt;= 0; brightness -= 5) {
+      // set duty cycle (255..0)
+      analogWrite(ledPins[2], brightness);
+      // small pause for smooth transition
+      delay(15);
+    }
+
+  // otherwise, make sure everything is off
   } else {
-    for (int i = 0; i < 3; i++) {
+    // loop over all LED pins and drive LOW
+    for (int i = 0; i &lt; 3; i++) {
       digitalWrite(ledPins[i], LOW);
     }
   }
 }
-  </code></pre>
+</code></pre>
 
-  <h2>PWM Voltage Chart</h2>
-  <img src="pwm_chart.png" alt="PWM Voltage Chart">
-  <p>
-    The chart below shows PWM voltage pulses across an LED for <code>analogWrite(64)</code>,
-    <code>analogWrite(128)</code>, and <code>analogWrite(255)</code>.
-  </p>
+<h2>PWM &amp; Duty Cycle (Q1)</h2>
+<p>
+  PWM controls average LED brightness by changing the fraction of time the pin is HIGH each cycle (duty cycle).
+  On Arduino Uno, <code>analogWrite(x)</code> sets duty ≈ <code>x/255</code>.
+  Below, the voltage vs. time waveforms show ~25% (64), ~50% (128), and ~100% (255).
+</p>
 
-  <h2>Battery Life Calculation</h2>
-  <p>
-    Average current draw ≈ 35mA (15mA per LED + 20mA Arduino idle).<br>
-    1200 mAh / 35 mA ≈ <strong>34 hours</strong> runtime.<br><br>
-    Worst case (all LEDs on): 1200 mAh / 65 mA ≈ <strong>18 hours</strong>.
-  </p>
+<!-- Inline SVG so no extra image file is required -->
+<figure>
+<svg viewBox="0 0 820 260" width="100%" role="img" aria-label="PWM waveforms for duty cycles 25%, 50%, 100%">
+  <rect x="0" y="0" width="820" height="260" fill="#ffffff" stroke="#cccccc"/>
+  <!-- axes -->
+  <line x1="60" y1="220" x2="790" y2="220" stroke="#000" stroke-width="2"/>
+  <line x1="60" y1="30"  x2="60"  y2="220" stroke="#000" stroke-width="2"/>
+  <text x="10" y="30" font-size="12">V (0–5V)</text>
+  <text x="770" y="240" font-size="12">time</text>
+  <!-- labels -->
+  <text x="70" y="60"  font-size="12">analogWrite(255) ≈ 100%</text>
+  <text x="70" y="120" font-size="12">analogWrite(128) ≈ 50%</text>
+  <text x="70" y="180" font-size="12">analogWrite(64) ≈ 25%</text>
+  <!-- 100% -->
+  <polyline fill="none" stroke="#1a73e8" stroke-width="3"
+    points="60,70 180,70 300,70 420,70 540,70 660,70 780,70"/>
+  <!-- 50% -->
+  <polyline fill="none" stroke="#34a853" stroke-width="3"
+    points="60,130 100,130 100,100 140,100 140,130 180,130 180,100 220,100 220,130 260,130 260,100 300,100 300,130 340,130 340,100 380,100 380,130 420,130 420,100 460,100 460,130 500,130 500,100 540,100 540,130 580,130 580,100 620,100 620,130 660,130 660,100 700,100 700,130 740,130 740,100 780,100"/>
+  <!-- 25% -->
+  <polyline fill="none" stroke="#ea4335" stroke-width="3"
+    points="60,190 92,190 92,160 108,160 108,190 140,190 172,190 172,160 188,160 188,190 220,190 252,190 252,160 268,160 268,190 300,190 332,190 332,160 348,160 348,190 380,190 412,190 412,160 428,160 428,190 460,190 492,190 492,160 508,160 508,190 540,190 572,190 572,160 588,160 588,190 620,190 652,190 652,160 668,160 668,190 700,190 732,190 732,160 748,160 748,190 780,190"/>
+</svg>
+<figcaption>Figure 3 — Correct PWM waveforms: ~25% (64), ~50% (128), ~100% (255) duty cycles.</figcaption>
+</figure>
 
-  <h2>Measured LED Voltage</h2>
-  <p>
-    Measured forward voltage (red LED): <strong>1.95V</strong><br>
-    Theoretical forward voltage: <strong>~2.0V</strong><br>
-    Difference is within typical tolerance range.
-  </p>
+<h2>Battery Life (Q2)</h2>
+<div class="math">
+  <p><strong>Assignment’s assumption:</strong> “only LEDs draw current.”</p>
+  <p>Average LED current estimate during the pattern:</p>
+  <ul>
+    <li>LED 1 blinks ~50% duty → 0.5 × 15&nbsp;mA = 7.5&nbsp;mA</li>
+    <li>LED 2 blinks ~50% duty → 0.5 × 15&nbsp;mA = 7.5&nbsp;mA</li>
+    <li>LED 3 fades; average ≈ 50% → 0.5 × 15&nbsp;mA = 7.5&nbsp;mA</li>
+  </ul>
+  <p><strong>Total ≈ 22.5&nbsp;mA.</strong></p>
+  <p><code>Runtime ≈ 1200&nbsp;mAh / 22.5&nbsp;mA ≈ 53.3&nbsp;hours</code></p>
+  <p>(If all LEDs were constantly full-on: 3 × 15&nbsp;mA = 45&nbsp;mA → 26.7&nbsp;hours.)</p>
+</div>
 
-  <h2>Animated GIF of Operation</h2>
-  <p>
-    When the button is pressed, two LEDs blink sequentially, and the third LED fades in and out smoothly using PWM.
-  </p>
-  <p><em>(Insert your converted GIF file here once uploaded)</em></p>
+<h2>Measured LED Voltage (Q3)</h2>
+<p>
+  Measured red LED forward voltage: <strong>1.95&nbsp;V</strong>. Typical datasheet value is ~2.0&nbsp;V, so the 0.05&nbsp;V difference
+  is well within normal device tolerance and multimeter measurement error.
+</p>
 
-  <h2>Reflection on AI Use</h2>
-  <p>
-    Yes, I used AI (ChatGPT) to help with structuring the documentation, writing resistor and battery explanations, 
-    and formatting this HTML page. The circuit and code were built and tested manually.
-  </p>
+<h2>Animated GIF of Operation</h2>
+<figure>
+  <img src="operatioinA2.gif" alt="Animated clip of the LEDs blinking and fading when the button is pressed"/>
+  <figcaption>Figure 4 — Operation GIF: two LEDs blink; the third fades using PWM when the button is pressed.</figcaption>
+</figure>
 
-  <hr>
-  <p><strong>Author:</strong> Olivia Stovall<br>
-  <strong>Course:</strong> Physical Computing – Assignment 2</p>
+<h2>AI Use (Q4)</h2>
+<p>
+  I used ChatGPT to improve documentation wording, fix image links, generate the PWM duty-cycle SVG, and expand the resistor/battery explanations.
+  All wiring, building, and testing were performed manually. Using AI helped me present the work more clearly and address feedback precisely.
+</p>
+
+<hr/>
+<p><strong>Author:</strong> Olivia Stovall — Physical Computing, Assignment 2</p>
 
 </body>
 </html>
