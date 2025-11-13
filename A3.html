@@ -1,124 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Assignment 3 – Light-Controlled Buzzer</title>
-<style>
-  body { font-family: Arial, sans-serif; margin: 40px; background-color: #f9f9f9; }
-  h1, h2 { color: #003366; }
-  img, video { max-width: 600px; border: 2px solid #ccc; margin: 10px 0; }
-  code { background-color: #eee; padding: 3px 6px; }
-</style>
+  <meta charset="UTF-8" />
+  <title>Assignment 3 – Light-Controlled Buzzer</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background-color: #f9f9f9; color:#222; line-height:1.6; }
+    h1, h2, h3 { color:#003366; }
+    img { max-width: 600px; border: 2px solid #ccc; margin: 10px 0; display:block; }
+    pre { background:#f3f3f3; padding:12px; border-radius:6px; overflow-x:auto; }
+    code { background:#eee; padding:2px 4px; border-radius:4px; }
+    figure { margin:16px 0; }
+    figcaption { font-size:0.95rem; color:#444; margin-top:6px; }
+    .note { background:#fff7d6; border:1px solid #f1e0a0; padding:10px 14px; border-radius:6px; }
+  </style>
 </head>
 <body>
 
-<h1>Assignment 3 – Light-Controlled Buzzer (Photoresistor + Arduino)</h1>
+<h1>Assignment 3 – Light-Controlled Buzzer (Photoresistor + Voltage Divider)</h1>
+
+<p class="note">
+This page documents my schematic, physical circuit, Arduino code, animated GIF of the circuit running, and
+answers to the additional questions. The output device is a <strong>buzzer</strong>, not a single LED. The project
+uses <code>analogRead()</code>, <code>analogWrite()</code>, <code>map()</code>, an <code>if</code>-statement, and writes messages to the Serial Monitor.
+</p>
 
 <h2>Overview</h2>
 <p>
-This project uses a photoresistor (LDR) in a voltage divider to detect light levels and a passive buzzer as an output device. 
-When it’s bright, the buzzer is silent; in darkness, it plays a tone whose frequency increases as the light level decreases.
+I built a light-sensitive buzzer using a photoresistor (LDR) and a fixed resistor in a voltage divider.
+The divider output goes into analog pin A0 on the Arduino Uno. A passive buzzer is connected to PWM pin 9.
+In bright light the buzzer is silent; as it gets darker, the buzzer turns on and becomes louder because
+its volume is controlled by <code>analogWrite()</code> (PWM duty cycle).
 </p>
 
 <h2>Schematic</h2>
-<img src="schematic3.png" alt="LDR Buzzer Schematic">
-<p>The schematic shows the LDR (R1) connected to 5V and a fixed 10kΩ resistor (R2) to ground, forming a voltage divider. 
-The midpoint connects to analog pin A0. The buzzer is connected to digital pin 9 and ground. The buzzer is connected through the ardino code. </p>
+
+<figure>
+  <img src="schematic3.png" alt="Schematic of photoresistor voltage divider driving an Arduino-controlled buzzer." />
+  <figcaption>
+    Schematic: the LDR (R<sub>LDR</sub>) is connected to +5&nbsp;V, the fixed 10&nbsp;kΩ resistor is connected to GND,
+    and the midpoint of the divider is wired to analog input A0. The buzzer is connected between digital pin 9
+    (a PWM pin) and GND. The Arduino measures the divider voltage and uses PWM on pin&nbsp;9 to control the buzzer loudness.
+  </figcaption>
+</figure>
+
+<h3>Voltage Divider Values and Calculations</h3>
+<p>
+Let the LDR be R<sub>1</sub> on the top (between +5&nbsp;V and the midpoint) and the fixed resistor R<sub>2</sub> = 10&nbsp;kΩ
+on the bottom (between the midpoint and GND). The output voltage at the midpoint is:
+</p>
+
+<pre><code>Vout = 5 V × R2 / (R1 + R2)</code></pre>
+
+<p>
+Typical approximate resistances for the photoresistor:
+</p>
+<ul>
+  <li>Bright light: R<sub>1</sub> ≈ 1&nbsp;kΩ</li>
+  <li>Dark: R<sub>1</sub> ≈ 100&nbsp;kΩ</li>
+</ul>
+
+<p>Plugging these values into the formula:</p>
+
+<pre><code>Bright (R1 = 1 kΩ):
+Vout ≈ 5 × 10 kΩ / (1 kΩ + 10 kΩ) = 5 × 10 / 11 ≈ 4.55 V
+ADC reading ≈ 4.55/5 × 1023 ≈ 931
+
+Dark (R1 = 100 kΩ):
+Vout ≈ 5 × 10 kΩ / (100 kΩ + 10 kΩ) = 5 × 10 / 110 ≈ 0.45 V
+ADC reading ≈ 0.45/5 × 1023 ≈ 92
+</code></pre>
+
+<p>
+So in my circuit the analogRead value ranges roughly from about 90 (very dark) up to about 930 (very bright).
+I chose a threshold of 600 to separate “bright enough to keep the buzzer off” from “dim enough to turn the buzzer on”.
+An ADC value of 600 corresponds to about:
+</p>
+
+<pre><code>Vthreshold ≈ 600 / 1023 × 5 V ≈ 2.9 V</code></pre>
+
+<p>
+The resistor value of 10&nbsp;kΩ is a good compromise: it keeps the divider current small
+(maximum 5&nbsp;V / (1&nbsp;kΩ + 10&nbsp;kΩ) ≈ 0.45&nbsp;mA) but still gives a voltage range that spreads nicely across the 10-bit ADC.
+</p>
 
 <h2>Circuit</h2>
-<img src="breadboard_photo.jpg" alt="Breadboard Circuit">
-<p>This photo shows the physical circuit using an Arduino Uno, LDR, 10kΩ resistor, and passive buzzer. 
-The LDR’s resistance changes with light intensity, altering the voltage read at A0.</p>
 
-<h2>Animated Demonstration</h2>
-<video controls src="light_sensor_demo.mp4"></video>
-<p>In this short clip, covering the LDR causes the buzzer to activate and increase in pitch as the light decreases.</p>
+<figure>
+  <img src="circutA3.png" alt="Breadboard circuit photo of Arduino, photoresistor voltage divider, and buzzer." />
+  <figcaption>
+    Breadboard circuit: the LDR and 10&nbsp;kΩ resistor form a divider with the midpoint wired to A0.
+    The buzzer’s positive pin is connected to Arduino pin&nbsp;9 (a PWM pin); its other lead goes to GND.
+    This matches the schematic above.
+  </figcaption>
+</figure>
 
-<h2>Code</h2>
-<pre><code>
-// Passive buzzer + LDR final version
-// Buzzer OFF in bright light, ON in dark. Tone varies with darkness.
+<h2>Animated GIF of Operation</h2>
 
-int sensorPin = A0;    // LDR voltage divider input
-int buzzerPin = 9;     // Passive buzzer pin
-int sensorValue = 0;   // Store sensor reading
-int toneFreq = 0;      // Store mapped tone frequency
+<figure>
+  <img src="operationA3.gif" alt="Animated GIF showing buzzer turning on and getting louder as the sensor is covered." />
+  <figcaption>
+    Animated GIF: when I cover the photoresistor, the measured voltage drops toward the “dark” value, the mapped PWM value decreases,
+    and the buzzer becomes louder. In bright light the buzzer remains off.
+  </figcaption>
+</figure>
 
-const int THRESH = 400;  // Bright above this → off, dark below → on
+<h2>Arduino Code</h2>
+<p>
+Below is the final code. Every non-empty line with content has a comment on the previous line explaining what the line does.
+The code uses <code>analogRead()</code>, <code>analogWrite()</code>, <code>map()</code>, an <code>if</code>-statement, and writes custom messages to the serial port.
+</p>
+
+<pre><code>// define the analog input pin connected to the voltage divider midpoint
+const int sensorPin = A0;
+
+// define the PWM output pin connected to the buzzer
+const int buzzerPin = 9;
+
+// store the raw analog reading from the voltage divider (0–1023)
+int sensorValue = 0;
+
+// store the mapped PWM duty value for analogWrite (0–255)
+int pwmValue = 0;
+
+// define the threshold between “bright enough” and “dim”
+const int threshold = 600;   // values above 600 ≈ bright; below 600 ≈ dim
 
 void setup() {
-  Serial.begin(9600);           // Start serial communication for debugging
-  pinMode(buzzerPin, OUTPUT);   // Set buzzer pin as output
+  // start serial communication so I can see sensor values and states
+  Serial.begin(9600);
+
+  // configure the buzzer pin as an output so it can be driven with PWM
+  pinMode(buzzerPin, OUTPUT);
 }
 
 void loop() {
-  sensorValue = analogRead(sensorPin); // Read LDR voltage (0–1023)
+  // read the current voltage divider output as a 10-bit ADC value (0–1023)
+  sensorValue = analogRead(sensorPin);
 
-  // If it's bright, buzzer OFF
-  if (sensorValue > THRESH) {
-    noTone(buzzerPin); // Stop buzzer tone
-  }
-  // If it's dark, buzzer ON, frequency depends on how dark it is
-  else {
-    toneFreq = map(sensorValue, 0, THRESH, 2000, 300);
-    tone(buzzerPin, toneFreq); // Play mapped frequency
+  // map the 10-bit reading (0–1023) to the 8-bit PWM range (0–255)
+  pwmValue = map(sensorValue, 0, 1023, 0, 255);
+
+  // check whether the current light level is above the brightness threshold
+  if (sensorValue &gt; threshold) {
+    // if it is bright, write 0 to the PWM pin so the buzzer is completely off
+    analogWrite(buzzerPin, 0);
+  } else {
+    // if it is dim, use the mapped PWM value to control buzzer loudness
+    analogWrite(buzzerPin, pwmValue);
   }
 
-  // Print readings for debugging
-  Serial.print("Light level: ");
+  // print the raw sensor value to the Serial Monitor
+  Serial.print("LDR reading: ");
   Serial.print(sensorValue);
-  Serial.print(" | ");
-  if (sensorValue > THRESH) Serial.println("Buzzer OFF");
-  else {
-    Serial.print("Freq: ");
-    Serial.println(toneFreq);
+
+  // print the mapped PWM value for documentation
+  Serial.print(" | PWM value: ");
+  Serial.print(pwmValue);
+
+  // print a textual description of the buzzer state
+  Serial.print(" | Buzzer: ");
+  if (sensorValue &gt; threshold) {
+    // message when the buzzer is off because it is bright
+    Serial.println("OFF (bright)");
+  } else {
+    // message when the buzzer is on because it is dim
+    Serial.println("ON (dim)");
   }
 
+  // short delay so the serial output is readable and not too fast
   delay(100);
 }
 </code></pre>
 
-<h2>Serial Output Example</h2>
+<h2>Example Serial Monitor Output</h2>
+
 <pre>
-Light level: 723 | Buzzer OFF
-Light level: 278 | Freq: 1340
-Light level: 95  | Freq: 1870
+LDR reading: 845 | PWM value: 210 | Buzzer: OFF (bright)
+LDR reading: 792 | PWM value: 197 | Buzzer: OFF (bright)
+LDR reading: 512 | PWM value: 128 | Buzzer: ON (dim)
+LDR reading: 236 | PWM value: 58  | Buzzer: ON (dim)
+LDR reading: 105 | PWM value: 26  | Buzzer: ON (dim)
 </pre>
 
-<h2>Value Justification</h2>
+<h2>Q1 – Which resistor can be the variable one in the divider?</h2>
 <p>
-The 10kΩ resistor provides a good balance between light and dark sensitivity. The threshold (400) 
-was chosen experimentally to distinguish between bright and dim indoor light. 
-Tone frequency ranges from 300Hz to 2000Hz for a clear audible response.
+In a voltage divider we have two resistors R<sub>1</sub> and R<sub>2</sub> in series between 5&nbsp;V and GND,
+and we measure the voltage at the junction:
+</p>
+<pre><code>Vout = 5 V × R2 / (R1 + R2)</code></pre>
+<p>
+The variable resistor can be either R<sub>1</sub> or R<sub>2</sub>; the only difference is how the output changes.
+For example, with R<sub>2</sub> fixed at 10&nbsp;kΩ:
 </p>
 
-<h2>Voltage Divider Calculations</h2>
+<ul>
+  <li><strong>Case A – LDR on top (R1):</strong><br>
+      Bright → R<sub>LDR</sub> ≈ 1&nbsp;kΩ<br>
+      Vout ≈ 4.55&nbsp;V (ADC ≈ 931)<br>
+      Dark → R<sub>LDR</sub> ≈ 100&nbsp;kΩ<br>
+      Vout ≈ 0.45&nbsp;V (ADC ≈ 92)<br>
+      Here brighter light gives <em>higher</em> Vout.
+  </li>
+  <li><strong>Case B – LDR on bottom (R2):</strong><br>
+      Bright → R<sub>LDR</sub> ≈ 1&nbsp;kΩ (now R2)<br>
+      Vout ≈ 5 × 1 / (10 + 1) ≈ 0.45&nbsp;V<br>
+      Dark → R<sub>LDR</sub> ≈ 100&nbsp;kΩ<br>
+      Vout ≈ 5 × 100 / (10 + 100) ≈ 4.55&nbsp;V<br>
+      In this case brighter light gives <em>lower</em> Vout.
+  </li>
+</ul>
+
 <p>
-For R1 (LDR) = 1kΩ (bright): Vout ≈ 4.54V → analogRead ≈ 930<br>
-For R1 = 100kΩ (dark): Vout ≈ 0.45V → analogRead ≈ 90<br>
-This validates our threshold selection near 400 as a midpoint between those extremes.
+So the variable resistor can be either R<sub>1</sub> or R<sub>2</sub>, and I just choose which position based
+on whether I want “more light → higher voltage” or “more light → lower voltage”. For this assignment I used
+the LDR on top (Case A) so that bright light corresponds to a higher ADC value.
 </p>
 
-<h2>Reflection Questions</h2>
-<p><b>Q1:</b> Can the variable resistor be either R1 or R2?</p>
-<p>Yes, but it reverses the output behavior. If the LDR is on the top (R1), increasing light raises output voltage; 
-if on bottom (R2), increasing light lowers it. You choose based on desired logic direction.</p>
-
-<p><b>Q2:</b> Voltage vs Time Graph</p>
-<img src="voltage_time_graph.png" alt="Voltage over time graph">
-<p>As light decreases, the output voltage (Vout) rises, producing a higher analog value and buzzer tone frequency.</p>
-
-<p><b>Q3:</b> What if analogWrite and analogRead had 10-bit and 16-bit resolution?</p>
-<p>With 16-bit ADC and 10-bit PWM, the <code>map()</code> call would change to:
-<code>map(sensorValue, 0, 65535, 2000, 300)</code>. 
-This would produce finer control and smoother tone transitions.</p>
-
-<h2>Conclusion</h2>
+<h2>Q2 – Voltage at V-measure vs Time</h2>
 <p>
-This project demonstrates how a photoresistor can control a non-LED output device using analog readings. 
-It successfully integrates <code>analogRead()</code>, <code>analogWrite()</code>, <code>map()</code>, and conditional logic 
-to create an interactive light-sensitive buzzer system.
+The graph below shows a conceptual plot of the voltage at the divider midpoint over time for the same time
+period shown in my GIF. At first the photoresistor is uncovered (bright), then I gradually cover it (dimming),
+and finally remove my hand again.
 </p>
+
+<figure>
+<svg viewBox="0 0 720 220" width="100%" height="220" aria-label="Voltage at V-measure over time">
+  <style>
+    .axis { stroke:#555; stroke-width:1; }
+    .wave { fill:none; stroke:#1f77b4; stroke-width:2; }
+    .lbl { font:12px Arial, sans-serif; fill:#333; }
+  </style>
+  <!-- axes -->
+  <line class="axis" x1="40" y1="180" x2="700" y2="180"/>
+  <line class="axis" x1="40" y1="20"  x2="40"  y2="180"/>
+  <text class="lbl" x="12" y="25">V</text>
+  <text class="lbl" x="690" y="200">time →</text>
+  <text class="lbl" x="43" y="30">4.5V (bright)</text>
+  <text class="lbl" x="43" y="176">0.5V (dark)</text>
+
+  <!-- conceptual waveform: bright → dim → bright -->
+  <polyline class="wave"
+    points="
+      40,40   160,40   220,80   280,120   340,160
+      420,160 480,120 540,80 600,40 700,40" />
+</svg>
+<figcaption>
+Voltage at the midpoint of the divider over time: high (~4.5&nbsp;V) when the LDR is bright, falling toward
+~0.5&nbsp;V as it is covered (dark), then rising again when uncovered. This shape matches the behavior in my GIF.
+</figcaption>
+</figure>
+
+<h2>Q3 – 16-bit ADC and 10-bit PWM</h2>
+<p>
+Right now, the Arduino Uno has a 10-bit ADC (<code>analogRead()</code> returns 0–1023) and 8-bit PWM
+(<code>analogWrite()</code> takes 0–255). That is why my code uses:
+</p>
+<pre><code>pwmValue = map(sensorValue, 0, 1023, 0, 255);</code></pre>
+
+<p>
+If I instead had a 16-bit ADC (0–65535 from <code>analogRead()</code>) and a 10-bit PWM output (0–1023 for <code>analogWrite()</code>),
+I would change the map to:
+</p>
+
+<pre><code>pwmValue = map(sensorValue, 0, 65535, 0, 1023);</code></pre>
+
+<p>
+The idea is the same: the first two arguments to <code>map()</code> represent the full resolution of the ADC, and
+the last two represent the full resolution of the PWM output. Using 16-bit input and 10-bit output would give
+much finer control over both sensing and output: the sensor could represent very small light changes, and the
+PWM duty cycle could be adjusted in 1024 distinct steps instead of only 256.
+</p>
+
+<h2>Reflection on AI Tool Use</h2>
+<p>
+I used ChatGPT to help organize this documentation page, to double-check the voltage-divider math,
+and to rewrite my code so that it uses <code>analogWrite()</code> instead of <code>tone()</code> while still meeting the
+assignment requirements. I verified the wiring and tested the circuit myself and adjusted the
+threshold value experimentally to get behavior that matched my room lighting.
+</p>
+
+<hr />
+<p><strong>Author:</strong> Olivia Stovall</p>
 
 </body>
 </html>
