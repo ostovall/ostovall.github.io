@@ -76,5 +76,459 @@
 
     <main>
       <section>
-        <h2>Interacti
+        <h2>Interactive demo</h2>
+        <p>
+          This page uses p5 and WebSerial to connect directly to my Arduino Uno and joystick from the starter kit.
+          When the page loads, a button labeled Connect to Arduino appears above the canvas.
+          Clicking that button opens the browser serial chooser so I can select the Arduino port.
+        </p>
+        <p>
+          Once connected, moving the joystick moves a circle around the canvas and pressing the joystick button changes the color mode.
+          Moving the mouse left and right across the canvas sends brightness commands to the Arduino and changes the LED intensity.
+          Pressing the space key sends a blink command so the LED flashes one time.
+        </p>
+        <p class="note">
+          The canvas and the Connect button are created by the p5 sketch in the file sketch.js.
+        </p>
+      </section>
 
+      <section>
+        <h2>Interaction design</h2>
+        <p>
+          The goal of this assignment is to create a two way interaction between the Arduino and the web page.
+          Input from the Arduino must cause visible changes in the browser and input from the browser must cause physical changes in the circuit.
+          For this project I use the joystick X and Y axes and the joystick push button as inputs from the Arduino and an LED on pin nine as the output device.
+        </p>
+        <p>
+          The Arduino sends lines of text over serial in the format J,x,y,B,mode where x and y are the raw analog values from the joystick and mode is either zero or one.
+          The p5 sketch reads these lines through WebSerial, parses the values, and uses them to control a circle that moves on the canvas and changes color when mode changes.
+          This satisfies the requirement that the page must update based on input from the Arduino.
+        </p>
+        <p>
+          The web page also sends commands back to the Arduino.
+          When the mouse moves, the page sends the command L,value where the value is between zero and two hundred fifty five and represents LED brightness.
+          When the user presses the space key, the page sends the text BLINK.
+          The Arduino sketch listens for these commands, sets the LED brightness accordingly, and performs a blink when the BLINK command is received.
+          This satisfies the requirement that the Arduino must do something based on input from the website.
+        </p>
+      </section>
+
+      <section>
+        <h2>Schematic</h2>
+        <figure>
+          <!-- Update the file name to match your actual schematic image -->
+          <img src="images/assignment7_schematic.png" alt="Schematic of Arduino joystick and LED circuit">
+          <figcaption>
+            Schematic for the joystick and LED circuit using only parts from the starter kit.
+            The joystick module is powered from the five volt and ground pins on the Arduino.
+            The VRx and VRy outputs from the joystick connect to analog pins A0 and A1.
+            The joystick switch output connects to digital pin two and uses the internal pull up resistor so the pin reads high when the button is not pressed and low when it is pressed.
+            The LED connects from pin nine through a current limiting resistor to ground so the Arduino can control brightness with analogWrite.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>Circuit photo</h2>
+        <figure>
+          <!-- Update the file name to match your actual circuit photo -->
+          <img src="images/assignment7_circuit.jpg" alt="Breadboard photo of joystick and LED wiring">
+          <figcaption>
+            Breadboard layout built with the starter kit components.
+            The joystick module receives five volt and ground from the power pins on the Uno.
+            The VRx pin runs to A0, the VRy pin runs to A1, and the switch pin runs to digital pin two.
+            The LED anode connects to pin nine through a resistor and the LED cathode connects to a ground rail.
+            I chose pin nine because it supports PWM output which is required for smooth brightness control with analogWrite.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>Circuit and webpage in action</h2>
+        <figure>
+          <!-- Update the file name to match your actual animated gif -->
+          <img src="images/assignment7_demo.gif" alt="Animated gif of joystick and LED interaction">
+          <figcaption>
+            Animated gif showing the interaction between the Arduino and the web page.
+            As I move the joystick, the circle on the canvas moves in the corresponding direction and the background and circle colors change when I press the joystick button.
+            As I move the mouse from left to right, the LED brightness changes.
+            Pressing the space key triggers the blink behavior where the LED flashes once and then returns to joystick or mouse control.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>Firmware code Arduino</h2>
+        <p class="note">
+          The Arduino code below reads the joystick inputs, sends data to the web page, and listens for LED commands from the browser.
+          Each line of code that has content includes a comment above it that explains what the line does, as required by the assignment.
+        </p>
+        <pre><code>// Declare constant for joystick X axis on analog pin A0
+const int joyXPin = A0;
+// Declare constant for joystick Y axis on analog pin A1
+const int joyYPin = A1;
+// Declare constant for joystick button on digital pin 2
+const int joyButtonPin = 2;
+// Declare constant for LED pin on digital pin 9 that supports PWM
+const int ledPin = 9;
+
+// Declare variable to store the last joystick button state
+int lastButtonState = HIGH;
+// Declare variable to store the current mode value from the button
+int currentMode = 0;
+// Declare variable for LED brightness commanded by the web page
+int webLedBrightness = -1;
+
+void setup() {
+  // Start serial communication at nine thousand six hundred bits per second
+  Serial.begin(9600);
+  // Set joystick X pin as input for safety
+  pinMode(joyXPin, INPUT);
+  // Set joystick Y pin as input for safety
+  pinMode(joyYPin, INPUT);
+  // Set joystick button pin as input with internal pull up resistor
+  pinMode(joyButtonPin, INPUT_PULLUP);
+  // Set LED pin as output so it can be driven with analogWrite
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  // Read raw joystick X value from zero to one thousand twenty three
+  int rawX = analogRead(joyXPin);
+  // Read raw joystick Y value from zero to one thousand twenty three
+  int rawY = analogRead(joyYPin);
+  // Read joystick button state which is low when pressed and high when not pressed
+  int buttonState = digitalRead(joyButtonPin);
+
+  // Check for a button press event from high to low
+  if (buttonState == LOW && lastButtonState == HIGH) {
+    // Toggle the mode value between zero and one
+    currentMode = 1 - currentMode;
+  }
+
+  // Store current button state for the next loop iteration
+  lastButtonState = buttonState;
+
+  // Map joystick X range from zero to one thousand twenty three into LED brightness zero to two hundred fifty five
+  int joyBrightness = map(rawX, 0, 1023, 0, 255);
+
+  // Send label letter J to mark the start of a data line
+  Serial.print("J,");
+  // Send raw joystick X value to the web page
+  Serial.print(rawX);
+  // Send comma separator before Y value
+  Serial.print(",");
+  // Send raw joystick Y value to the web page
+  Serial.print(rawY);
+  // Send comma and label letter B before mode information
+  Serial.print(",B,");
+  // Send current mode value as zero or one then end the line
+  Serial.println(currentMode);
+
+  // Check if any serial data has arrived from the web page
+  if (Serial.available() > 0) {
+    // Read characters from serial until a newline character is found
+    String cmd = Serial.readStringUntil('\n');
+    // Remove any surrounding white space from the command string
+    cmd.trim();
+
+    // Check if the command starts with L comma which means LED brightness command
+    if (cmd.startsWith("L,")) {
+      // Find the index of the comma inside the command string
+      int commaIndex = cmd.indexOf(',');
+      // Extract the substring after the comma which should contain a number
+      String valueText = cmd.substring(commaIndex + 1);
+      // Convert brightness text to an integer value
+      int value = valueText.toInt();
+      // Keep brightness value in the valid range zero to two hundred fifty five
+      value = constrain(value, 0, 255);
+      // Store web commanded brightness into the global variable
+      webLedBrightness = value;
+    }
+
+    // Check if the command text exactly matches the word BLINK
+    if (cmd == "BLINK") {
+      // Turn LED fully on for the blink
+      analogWrite(ledPin, 255);
+      // Wait one hundred fifty milliseconds so the blink is visible
+      delay(150);
+      // Turn LED fully off after the blink
+      analogWrite(ledPin, 0);
+      // Reset web commanded brightness so joystick control takes over again
+      webLedBrightness = -1;
+    }
+  }
+
+  // Declare variable to hold the final brightness value for the LED
+  int finalBrightness;
+
+  // If webLedBrightness is nonnegative then web page is in control of brightness
+  if (webLedBrightness >= 0) {
+    // Use brightness value that came from web page interaction
+    finalBrightness = webLedBrightness;
+  } else {
+    // Otherwise use brightness based on joystick X position
+    finalBrightness = joyBrightness;
+  }
+
+  // If mode is one and web is not commanding brightness we soften the brightness
+  if (currentMode == 1 && webLedBrightness < 0) {
+    // Divide the brightness by two to make LED dimmer in mode one
+    finalBrightness = finalBrightness / 2;
+  }
+
+  // Write the final brightness to the LED pin using PWM
+  analogWrite(ledPin, finalBrightness);
+
+  // Short delay to reduce serial traffic and stabilize the animation
+  delay(20);
+}
+        </code></pre>
+      </section>
+
+      <section>
+        <h2>Webpage code p5 and WebSerial</h2>
+        <p class="note">
+          The p5 code below creates the canvas, reads serial data from the Arduino, and sends LED commands back to the board.
+          Each line of code has a comment above it that explains what it does.
+        </p>
+        <pre><code>// Declare variable to hold the serial port object
+let port;
+// Declare variable to hold the writer used to send text to Arduino
+let writer;
+// Create a decoder to turn incoming bytes into text
+const decoder = new TextDecoder();
+
+// Create a string buffer to store partial text between reads
+let readBuffer = "";
+
+// Declare variables for joystick X Y and mode values from Arduino
+let joyX = 512;
+// Declare variable for joystick Y initial value at center
+let joyY = 512;
+// Declare variable for current mode value zero or one from Arduino
+let mode = 0;
+
+// Declare variable for background color of the canvas
+let bgColor;
+// Declare variable for circle color used to draw the joystick indicator
+let circleColor;
+
+function setup() {
+  // Create a p5 canvas of width six hundred and height four hundred pixels
+  createCanvas(600, 400);
+
+  // Set initial background color to a dark blue tone
+  bgColor = color(15, 20, 40);
+  // Set initial circle color to a cyan tone
+  circleColor = color(0, 200, 255);
+
+  // Create a button element that will start the serial connection
+  const connectButton = createButton('Connect to Arduino');
+  // Position the connect button near the top left corner
+  connectButton.position(10, 10);
+  // Attach mousePressed handler so that clicking the button calls connectSerial
+  connectButton.mousePressed(connectSerial);
+
+  // Set text size for on screen labels
+  textSize(14);
+}
+
+function draw() {
+  // Paint the canvas background using the current background color
+  background(bgColor);
+
+  // Map joystick X range zero to one thousand twenty three into canvas X position
+  const mappedX = map(joyX, 0, 1023, 50, width - 50);
+  // Map joystick Y range zero to one thousand twenty three into canvas Y position
+  const mappedY = map(joyY, 0, 1023, 50, height - 50);
+
+  // Select colors based on the current mode value
+  if (mode === 0) {
+    // Use dark blue background and cyan circle when mode is zero
+    bgColor = color(15, 20, 40);
+    circleColor = color(0, 200, 255);
+  } else {
+    // Use warm colors when mode is one to show that the button was pressed
+    bgColor = color(40, 10, 10);
+    circleColor = color(255, 180, 0);
+  }
+
+  // Disable stroke so shapes have no outline
+  noStroke();
+  // Set fill color for the joystick circle
+  fill(circleColor);
+  // Draw the circle at the mapped joystick position with fixed diameter
+  circle(mappedX, mappedY, 80);
+
+  // Set fill color to white for text
+  fill(255);
+  // Draw text showing raw joystick X value from Arduino
+  text('Joystick X ' + joyX, 10, 60);
+  // Draw text showing raw joystick Y value from Arduino
+  text('Joystick Y ' + joyY, 10, 80);
+  // Draw text showing current mode and how it is changed
+  text('Mode ' + mode + ' toggled by joystick button', 10, 100);
+  // Draw text explaining that mouse movement controls LED brightness
+  text('Move mouse left right to change LED brightness', 10, 120);
+  // Draw text explaining that the space key will blink the LED
+  text('Press space to blink LED once', 10, 140);
+}
+
+async function connectSerial() {
+  // Check if the browser supports the serial feature
+  if (!('serial' in navigator)) {
+    // Alert the user when WebSerial is not available
+    alert('WebSerial is not supported in this browser');
+    // Exit the function early if serial is not supported
+    return;
+  }
+
+  try {
+    // Ask the user to choose the serial port that is connected to the Arduino
+    port = await navigator.serial.requestPort();
+    // Open the selected port with baud rate that matches the Arduino sketch
+    await port.open({ baudRate: 9600 });
+    // Get a writer object from the writable side of the port
+    writer = port.writable.getWriter();
+    // Log to console that the serial connection has been opened
+    console.log('Serial connected');
+    // Start the asynchronous read loop to listen for Arduino messages
+    readLoop();
+  } catch (err) {
+    // Log any error that occurs while opening the port
+    console.error('Serial connection error', err);
+  }
+}
+
+async function readLoop() {
+  // Keep reading as long as the serial port has a readable stream
+  while (port.readable) {
+    // Get a reader from the readable side of the port
+    const reader = port.readable.getReader();
+    try {
+      // Create an inner loop that reads chunks until the stream is done
+      while (true) {
+        // Await one read operation from the serial port
+        const { value, done } = await reader.read();
+        // If done is true then the stream has closed and we break the loop
+        if (done) {
+          break;
+        }
+        // If there is a value received then process the bytes
+        if (value) {
+          // Decode the binary chunk into a text string
+          const chunk = decoder.decode(value, { stream: true });
+          // Append the decoded text to the readBuffer string
+          readBuffer += chunk;
+          // Split the buffer into separate lines using newline as separator
+          let lines = readBuffer.split('\n');
+          // Keep the last partial line in the buffer for the next read
+          readBuffer = lines.pop();
+          // Loop over each complete line that was received
+          for (let line of lines) {
+            // Trim white space from both ends of the line
+            line = line.trim();
+            // Pass the cleaned line to the handler function
+            handleSerialLine(line);
+          }
+        }
+      }
+    } catch (err) {
+      // Log any error that happens while reading from the port
+      console.error('Serial read error', err);
+    } finally {
+      // Release the reader so a new reader can be created later
+      reader.releaseLock();
+    }
+  }
+}
+
+function handleSerialLine(line) {
+  // If line is empty then stop and return
+  if (!line) return;
+
+  // Split the incoming line into parts using comma as separator
+  const parts = line.split(',');
+  // Check for the expected format J x y B mode
+  if (parts.length >= 5 && parts[0] === 'J' && parts[3] === 'B') {
+    // Convert the second part to integer for joystick X value
+    joyX = int(parts[1]);
+    // Convert the third part to integer for joystick Y value
+    joyY = int(parts[2]);
+    // Convert the fifth part to integer for mode value
+    mode = int(parts[4]);
+    // Log the parsed joystick data to the console for debugging
+    console.log('Joystick', joyX, joyY, 'mode', mode);
+  }
+}
+
+async function sendLine(text) {
+  // Do nothing if writer is not ready yet
+  if (!writer) return;
+  // Create an encoder object to convert text into bytes
+  const encoder = new TextEncoder();
+  // Encode the text plus newline into a Uint8Array of bytes
+  const data = encoder.encode(text + '\n');
+  // Log the text command that is about to be sent
+  console.log('Send', text);
+  // Write the encoded bytes to the serial port
+  await writer.write(data);
+}
+
+function mouseMoved() {
+  // Only send brightness commands if the serial writer is available
+  if (!writer) return;
+  // Map mouse X position across canvas width into brightness zero to two hundred fifty five
+  const brightness = int(map(mouseX, 0, width, 0, 255));
+  // Build command string with letter L and the brightness value
+  const command = 'L,' + brightness;
+  // Send the brightness command line to the Arduino
+  sendLine(command);
+}
+
+function keyPressed() {
+  // Check if the pressed key is the space character
+  if (key === ' ') {
+    // Send the BLINK command to ask Arduino to blink the LED one time
+    sendLine('BLINK');
+  }
+}
+        </code></pre>
+      </section>
+
+      <section>
+        <h2>Explanation of calculations</h2>
+        <p>
+          The joystick outputs an analog voltage between zero volt and five volt on each axis.
+          The Arduino analog to digital converter measures this voltage and returns a ten bit value between zero and one thousand twenty three when I call analogRead on A0 or A1.
+          This means a joystick position near the lower left corner will produce values close to zero and a position near the upper right corner will produce values close to one thousand twenty three.
+        </p>
+        <p>
+          The LED brightness is controlled with analogWrite on pin nine.
+          This function uses eight bit pulse width modulation and expects an integer between zero and two hundred fifty five.
+          A value of zero keeps the LED off, a value of two hundred fifty five keeps it fully on, and values in between set the duty cycle to intermediate brightness levels.
+        </p>
+        <p>
+          To connect the joystick input to the LED output I use the map function in the Arduino code.
+          The call map(rawX, 0, 1023, 0, 255) takes the joystick X reading and linearly scales it from the original range zero to one thousand twenty three into the target range zero to two hundred fifty five.
+          This allows the same position value to both move the circle on the web page and control the physical LED brightness.
+          The calculations are important because analogRead and analogWrite do not use the same ranges and need to be matched for the interaction to feel natural.
+        </p>
+      </section>
+
+      <section>
+        <h2>Notes and collaboration</h2>
+        <p>
+          I used the starter kit joystick and LED as the only hardware components.
+          The joystick provides two separate analog inputs and a digital button input, which satisfies the requirement for two input devices from the Arduino.
+          The LED on pin nine is the output device controlled from the web page.
+        </p>
+        <p>
+          All code for the interaction is my own work and I followed the class examples for WebSerial and p5 as references but did not reuse an example sketch without changes.
+          Any collaboration with classmates is documented in my Canvas submission for this assignment.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
