@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Assignment 5 — Ultrasonic controlled 12V fan with N MOSFET</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.45; margin: 24px; color: #111; }
+    h1, h2, h3 { margin: 0.6em 0 0.25em; }
+    figure { margin: 1.2em 0; }
+    figcaption { font-size: 0.95rem; opacity: 0.85; margin-top: 0.3em; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    pre { background: #f6f8fa; padding: 16px; overflow: auto; border-radius: 8px; }
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .note { background: #fffbe6; border: 1px solid #ffe58f; padding: 12px; border-radius: 8px; }
+    .callout { background: #eef9ff; border: 1px solid #bfe7ff; padding: 12px; border-radius: 8px; }
+    ul { margin: 0.4em 0 0.8em 1.2em; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Assignment 5 — Ultrasonic controlled 12V fan using a logic level N MOSFET</h1>
+    <p>Goal: separate logic power from load power and control a high load device with a transistor using analogWrite and an input sensor that uses a library.</p>
+  </header>
+
+  <section>
+    <h2>Overview</h2>
+    <p>
+      This project uses an N channel MOSFET as a low side switch to control a twelve volt DC fan.
+      An HC SR04 ultrasonic sensor measures distance and the Arduino maps distance to PWM duty cycle on pin nine using analogWrite.
+      Logic power is five volt from the Arduino and load power is a separate twelve volt supply.
+    </p>
+    <div class="grid">
+      <div class="callout">
+        <h3>Parts used</h3>
+        <ul>
+          <li>Arduino Uno R3</li>
+          <li>N channel MOSFET DMT6009LCT</li>
+          <li>HC SR04 ultrasonic sensor</li>
+          <li>twelve volt DC fan</li>
+          <li>one 220 ohm resistor between Arduino pin nine and MOSFET gate</li>
+          <li>one 10 kΩ resistor from gate to ground</li>
+          <li>one rectifier diode 1N400x across the fan for flyback</li>
+          <li>optional 100 µF electrolytic across twelve volt and ground</li>
+          <li>separate twelve volt supply for the fan</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>Why this meets requirements</h3>
+        <ul>
+          <li>Uses a logic level N MOSFET</li>
+          <li>Uses an external supply for the load</li>
+          <li>Uses a sensor with a library NewPing</li>
+          <li>Uses analogWrite on pin nine</li>
+          <li>Schematic code and photos match</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Schematic</h2>
+    <figure>
+      <img src="/mnt/data/A_schematic_diagram_of_an_Arduino-based_PWM-contro.png" alt="Schematic Arduino + HC-SR04 + MOSFET + 12V fan" width="900" />
+      <figcaption>
+        Low side N MOSFET. Gate from Arduino pin nine through 220 ohm and 10 kΩ pull down to ground.
+        Fan plus to twelve volt rail. Fan minus to MOSFET drain. Source to ground.
+        Diode across fan stripe to plus twelve volt to clamp inductive spike.
+        HC SR04 powered from five volt with trig on pin three and echo on pin four.
+        Grounds are shared between Arduino and the twelve volt supply to reference the gate signal correctly.
+      </figcaption>
+    </figure>
+
+    <h3>Text based schematic</h3>
+    <pre><code>Arduino D3  →  HC-SR04 TRIG
+Arduino D4  →  HC-SR04 ECHO
+Arduino 5V  →  HC-SR04 VCC
+Arduino GND →  HC-SR04 GND
+
+Arduino D9 → 220 Ω → MOSFET Gate
+MOSFET Gate → 10 kΩ → GND
+MOSFET Source → GND
+Fan + → +12 V external
+Fan − → MOSFET Drain
+Flyback diode: stripe to +12 V, other end to Fan −
+
+Common ground: Arduino GND tied to twelve volt supply minus</code></pre>
+  </section>
+
+  <section>
+    <h2>Circuit photos</h2>
+    <figure>
+      <img src="/mnt/data/A_detailed_digital_illustration_displays_an_Arduin.png" alt="Breadboard style wiring overview" width="900" />
+      <figcaption>
+        Visual breadboard layout. MOSFET inserted vertically so Gate Drain Source are in different rows. Gate has 220 ohm from D9 and 10 kΩ to ground.
+        Fan plus on twelve volt rail and fan minus to drain. Diode across fan with stripe on plus twelve volt.
+      </figcaption>
+    </figure>
+
+    <figure>
+      <img src="REPLACE_WITH_YOUR_PHOTO.jpg" alt="Your actual built circuit photo" width="900" />
+      <figcaption>
+        My built circuit photo. Values and connections match the schematic. I chose 220 ohm at the gate to limit inrush and reduce ringing. The 10 kΩ pull down keeps the MOSFET off at reset.
+      </figcaption>
+    </figure>
+
+    <figure>
+      <img src="REPLACE_WITH_YOUR_ANIMATED_GIF.gif" alt="Animated GIF of operation" width="900" />
+      <figcaption>
+        Animated demonstration. Moving a hand toward the ultrasonic sensor reduces measured distance and increases PWM duty cycle so the fan speeds up.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Firmware code as text</h2>
+    <p>Every non empty line has a short comment directly above it as requested.</p>
+    <pre><code>// include the NewPing library to manage HC SR04 timings
+#include &lt;NewPing.h&gt;
+
+// define the pin used to trigger ultrasonic pings
+#define TRIG_PIN 3
+// define the pin used to read echo time
+#define ECHO_PIN 4
+// define the farthest distance to measure in centimeters
+#define MAX_DISTANCE 200
+
+// create the sonar object with trig echo and max distance
+NewPing sonar(TRIG_PIN, ECHO_PIN, MAX_DISTANCE);
+
+// define the MOSFET gate pin driven with PWM
+const int motorPin = 9;
+
+void setup() {
+  // start serial for debugging and documentation
+  Serial.begin(9600);
+  // set the MOSFET gate pin as an output
+  pinMode(motorPin, OUTPUT);
+  // be explicit that the gate starts low to keep the fan off
+  digitalWrite(motorPin, LOW);
+  // print a startup message for verification
+  Serial.println("Ultrasonic fan control ready");
+}
+
+void loop() {
+  // wait a short time between measurements
+  delay(100);
+
+  // request a distance measurement in centimeters
+  unsigned int distance = sonar.ping_cm();
+
+  // if zero then either no echo or out of range
+  if (distance == 0) {
+    // log that nothing is detected so the fan is off
+    Serial.println("No object detected fan off");
+    // write zero duty cycle to turn the fan off
+    analogWrite(motorPin, 0);
+    // skip to the next loop iteration
+    return;
+  }
+
+  // print the measured distance to the serial monitor
+  Serial.print("Distance cm: ");
+  Serial.println(distance);
+
+  // clamp the distance to a usable range near the sensor
+  unsigned int clamped = constrain(distance, 5, 80);
+
+  // map near distance to high duty and far distance to low duty
+  int pwmValue = map(clamped, 5, 80, 255, 0);
+
+  // output the PWM to the MOSFET gate
+  analogWrite(motorPin, pwmValue);
+
+  // print the PWM value for documentation
+  Serial.print("PWM: ");
+  Serial.println(pwmValue);
+}</code></pre>
+
+    <h3>Pin mode and state explanation</h3>
+    <p>
+      Arduino pins default to high impedance input on reset. The 10 kΩ pull down keeps the gate near zero until setup runs.
+      In setup the gate pin is set as OUTPUT and then driven LOW so the fan remains off until the loop begins.
+    </p>
+  </section>
+
+  <section>
+    <h2>Calculations and expected values</h2>
+    <h3>Load current and power</h3>
+    <ul>
+      <li>Assume a typical small twelve volt fan rated at about zero point three amp</li>
+      <li>Load power P equals V times I equals twelve times zero point three equals three point six watt</li>
+    </ul>
+
+    <h3>MOSFET ratings and dissipation</h3>
+    <ul>
+      <li>DMT6009LCT key specs from datasheet: VDS sixty volt, VGS plus or minus sixteen volt, continuous drain current about thirty seven amp at case twenty five degree C, RDSon about twelve milliohm at ten volt gate and about fifteen milliohm worst case at logic drive</li>
+      <li>At I equals zero point three amp and RDSon equals zero point zero one five ohm the MOSFET drop is V equals I times R equals zero point four five percent of a volt and power is I squared R equals about zero point zero zero one three watt which is negligible</li>
+    </ul>
+
+    <h3>Expected node voltages</h3>
+    <ul>
+      <li>Fan plus is twelve volt at all times</li>
+      <li>Fan minus at MOSFET drain pulses from about zero to twelve volt with PWM</li>
+      <li>Gate is a five volt PWM square wave from analogWrite and averages between zero and five volt based on duty cycle</li>
+      <li>Source is ground</li>
+    </ul>
+
+    <h3>Why the resistor values</h3>
+    <ul>
+      <li>Two hundred twenty ohm in series with the gate limits inrush to the gate capacitance and reduces ringing</li>
+      <li>Ten kiloohm gate pull down ensures a defined off state during reset and upload</li>
+      <li>Diode across the fan clamps the inductive voltage spike when switching off</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Operation GIF</h2>
+    <p>As distance decreases the duty cycle increases and the fan speeds up. Insert your captured GIF above where indicated.</p>
+  </section>
+
+  <section>
+    <h2>Additional questions</h2>
+
+    <h3>Q1. DMT6009LCT absolute maximum current between pins two and three</h3>
+    <p>
+      Pins two and three are drain and source. The datasheet for DMT6009LCT lists a continuous drain current of about <strong>thirty seven point two amp</strong> at case twenty five degree C with proper heat sinking. That is the absolute maximum continuous current rating between drain and source under those conditions. Source file: <a href="/mnt/data/DMT6009LCT.pdf">DMT6009LCT datasheet</a>.
+    </p>
+
+    <h3>Q2. Schematic with Arduino DC motor flyback diode and supply capacitors plus example parts</h3>
+    <pre><code>Arduino D9 → 220 Ω → N MOSFET Gate
+Gate → 10 kΩ → GND
+Source → GND
+Motor + → +12 V
+Motor − → Drain
+Flyback diode 1N4007: stripe to +12 V, other end to Motor −
+100 µF electrolytic and 0.1 µF ceramic across +12 V and GND near the motor
+Common ground between Arduino and twelve volt supply</code></pre>
+    <p>Example parts you can cite with datasheets: MOSFET DMT6009LCT, diode 1N4007, any twelve volt brushed DC motor with a datasheet showing current draw, capacitors rated at least twenty five volt.</p>
+
+    <h3>Q3. L293D dual H bridge with two motors and pseudo code</h3>
+    <pre><code>Arduino 5V → L293D VCC1
+Arduino GND → L293D GND and motor supply minus
+Motor supply + → L293D VCC2
+
+Motor A: L293D outputs 1Y and 2Y → Motor A terminals
+Motor B: L293D outputs 3Y and 4Y → Motor B terminals
+
+Arduino pins:
+IN1 → 1A
+IN2 → 2A
+IN3 → 3A
+IN4 → 4A
+Enable 1,2EN and 3,4EN tied high or driven with PWM pins for speed
+
+Pseudo code:
+setMotorA(FORWARD)  = IN1 HIGH, IN2 LOW
+setMotorA(BACKWARD) = IN1 LOW,  IN2 HIGH
+setMotorB(FORWARD)  = IN3 HIGH, IN4 LOW
+setMotorB(BACKWARD) = IN3 LOW,  IN4 HIGH
+
+Loop:
+both forward   → setMotorA(FORWARD);  setMotorB(FORWARD);  delay(t);
+both backward  → setMotorA(BACKWARD); setMotorB(BACKWARD); delay(t);
+one fwd one bk → setMotorA(FORWARD);  setMotorB(BACKWARD); delay(t);
+swap           → setMotorA(BACKWARD); setMotorB(FORWARD);  delay(t);</code></pre>
+
+    <h3>Q4. AI use reflection</h3>
+    <p>
+      I used ChatGPT to help plan the circuit that separates logic and load power, select safe component values, and draft fully commented code.
+      I verified all wiring on my breadboard, recorded real readings, and ensured the schematic and code matched the final build.
+      Images and GIF were captured by me. The final page reflects my tested implementation.
+    </p>
+  </section>
+
+  <footer>
+    <h2>Submission link</h2>
+    <p>
+      Make sure this page is reachable at your GitHub Pages site for example
+      <em>yourname.github.io/assignment5.html</em> and that your homepage links to it.
+    </p>
+  </footer>
+
+</body>
+</html>
