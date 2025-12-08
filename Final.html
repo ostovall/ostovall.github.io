@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PawsOn Cat Toy – Final Project</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem 3rem;
+      color: #111827;
+      background: #f8fafc;
+    }
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      margin-top: 2rem;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 0.9rem;
+    }
+    pre {
+      background: #0b1120;
+      color: #e5e7eb;
+      padding: 1rem;
+      overflow-x: auto;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    .caption {
+      font-size: 0.9rem;
+      color: #4b5563;
+      margin-top: 0.25rem;
+      margin-bottom: 1.5rem;
+    }
+    img {
+      max-width: 100%;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .tag {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid #cbd5f5;
+      font-size: 0.75rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      margin-right: 0.25rem;
+      margin-bottom: 0.25rem;
+      color: #1e293b;
+      background: #e0ecff;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>PawsOn Cat Toy: Ultrasonic-Activated Wand for Foster Kittens</h1>
+
+  <p>
+    <span class="tag">Input</span>
+    <span class="tag">Ultrasonic Sensor</span>
+    <span class="tag">Servo Motor</span>
+    <span class="tag">Arduino UNO R3</span>
+    <span class="tag">LED Indicator</span>
+  </p>
+
+  <h2>Concept</h2>
+
+  <h3>Original Idea</h3>
+  <p>
+    My initial concept was a remote controlled cat toy that would let a pet owner drive a wand toy around and engage their cat with movement, light, and sound. The goal was to build a low-cost Arduino based product that could be controlled wirelessly to entertain indoor cats.
+  </p>
+
+  <h3>Final Execution</h3>
+  <p>
+    The final design evolved into an automatic toy that starts moving when a cat approaches. Instead of a handheld remote, the toy uses an ultrasonic distance sensor to detect when an animal is nearby and then drives a servo motor to swing a wand back and forth while an LED indicates that the toy is active.
+  </p>
+  <p>
+    This toy was designed specifically with foster kittens in mind, especially those under two pounds who are not yet old enough to be spayed and adopted. In this stage they are very active but also relatively small and light. The electronics are sealed inside a reinforced cardboard enclosure with taped seams and strain-relieved entry points for the wand and power. That makes the toy durable enough for the intended use case while keeping wires and components inaccessible to curious kittens.
+  </p>
+
+  <!-- Optional concept sketch image -->
+  <!--
+  <img src="images/concept-sketch.jpg" alt="Concept sketch of the PawsOn cat toy">
+  <p class="caption">Early concept sketch of the PawsOn ultrasonic cat toy.</p>
+  -->
+
+  <h2>How the Product Works</h2>
+  <p>
+    The interaction loop is simple:
+  </p>
+  <ol>
+    <li>The ultrasonic sensor continuously measures distance in front of the toy.</li>
+    <li>If something (ideally a kitten) is detected within about 70&nbsp;cm, the Arduino switches from an idle state into play mode.</li>
+    <li>In play mode, the servo sweeps the wand back and forth and the LED blinks to show that the toy is active.</li>
+    <li>If there is no detection for several seconds, the toy returns to idle, the LED turns solid, and the wand centers itself.</li>
+  </ol>
+
+  <h2>Technical Implementation</h2>
+
+  <h3>Hardware Components</h3>
+  <ul>
+    <li>Arduino UNO R3 (microcontroller and logic)</li>
+    <li>HC-SR04 ultrasonic distance sensor (input: detects nearby kitten)</li>
+    <li>SG90 micro servo motor (output: swings the wand toy)</li>
+    <li>Blue LED with series resistor (output: active/idle indicator)</li>
+    <li>5 V power from the Arduino and common ground rails</li>
+    <li>Cardboard enclosure and mounted wand mechanism</li>
+  </ul>
+
+  <h3>System Diagram</h3>
+
+  <!-- Replace src with your photo of the block diagram -->
+  <!--
+  <img src="images/block-diagram.jpg" alt="Block diagram of ultrasonic sensor to Arduino to servo and LED">
+  <p class="caption">High-level block diagram: Ultrasonic sensor input drives the Arduino, which controls the servo motor and LED outputs.</p>
+  -->
+
+  <p>
+    At a high level, the ultrasonic sensor feeds distance information into the Arduino. The Arduino runs a small state machine that decides whether the toy is idle or playing. In play mode it drives the servo motor with a sweeping motion and blinks the LED; in idle mode it centers the servo and holds the LED on solid.
+  </p>
+
+  <h3>Schematic</h3>
+
+  <!-- Replace src with your clean schematic image export -->
+  <!--
+  <img src="images/schematic.jpg" alt="Schematic of the cat toy circuit">
+  <p class="caption">Schematic showing the ultrasonic sensor, servo motor, LED, and Arduino connections.</p>
+  -->
+
+  <p>
+    Key connections from the schematic:
+  </p>
+  <ul>
+    <li>Ultrasonic sensor VCC to 5 V, GND to GND</li>
+    <li>Ultrasonic TRIG to Arduino digital pin 8</li>
+    <li>Ultrasonic ECHO to Arduino digital pin 9</li>
+    <li>Servo signal to Arduino digital pin 3</li>
+    <li>Servo VCC to 5 V and servo GND to common ground</li>
+    <li>Blue LED connected to Arduino digital pin 13 through a current-limiting resistor, then to ground</li>
+  </ul>
+
+  <h3>Physical Circuit</h3>
+
+  <!-- Replace src with your photo of the final wired circuit / inside the box -->
+  <!--
+  <img src="images/circuit-photo.jpg" alt="Breadboard and Arduino wiring for the cat toy">
+  <p class="caption">Physical wiring of the circuit, later enclosed inside the cardboard box.</p>
+  -->
+
+  <p>
+    The circuit was first prototyped on a breadboard, then transferred into the cardboard enclosure. Power and ground lines are shared along simple bus rails, and all joints are taped or hot-glued so nothing can be tugged loose by the kittens. The servo is mechanically mounted so that only the wand and a short linkage are visible outside the box.
+  </p>
+
+  <h2>Code</h2>
+
+  <p>
+    The sketch uses the Arduino Servo library and a small finite state machine with two states: IDLE and PLAY. A debounced distance reading from the ultrasonic sensor decides when the toy should switch states.
+  </p>
+
+  <pre><code>#include &lt;Servo.h&gt;
+
+// ----- Pin Definitions -----
+const int trigPin   = 8;
+const int echoPin   = 9;
+const int servoPin  = 3;
+const int ledPin    = 13;
+
+// ----- Behavior Parameters -----
+const long PLAY_TIMEOUT_MS = 5000;  // time after last detection before going idle
+
+// Valid distance window for detection
+const int MIN_VALID_CM        = 5;    // ignore anything closer than 5 cm
+const int MAX_VALID_CM        = 90;   // ignore anything farther than 90 cm
+const int DETECT_THRESHOLD_CM = 70;   // within this = "cat nearby"
+
+// Detection confirmation
+const int REQUIRED_HITS = 3;          // need this many consecutive detections
+int detectHitCount = 0;
+
+// LED blink timing in PLAY mode
+const unsigned long LED_BLINK_INTERVAL_MS = 300;
+
+// Servo motion parameters
+const int SERVO_NEUTRAL_ANGLE = 90;
+const int SERVO_MIN_ANGLE     = 20;
+const int SERVO_MAX_ANGLE     = 160;
+const unsigned long SERVO_MOVE_INTERVAL_MS = 80;
+
+// ----- Global Objects and State -----
+Servo wandServo;
+
+enum ToyState { IDLE, PLAY };
+ToyState currentState = IDLE;
+
+unsigned long lastDetectTime = 0;
+unsigned long lastLedToggleTime = 0;
+bool ledState = false;
+
+unsigned long lastServoMoveTime = 0;
+int currentServoAngle = SERVO_NEUTRAL_ANGLE;
+int servoDirection = 1;
+
+// ----- Helper: Measure distance using ultrasonic (cm) -----
+long getDistanceCm() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 30000); // timeout ~30ms
+
+  if (duration == 0) {
+    return -1; // no echo
+  }
+
+  long distanceCm = duration / 29 / 2;
+  return distanceCm;
+}
+
+// ----- Helper: Servo idle position -----
+void setServoIdle() {
+  currentServoAngle = SERVO_NEUTRAL_ANGLE;
+  wandServo.write(currentServoAngle);
+}
+
+// ----- Helper: Servo playful motion -----
+void updateServoPlayMotion() {
+  unsigned long now = millis();
+  if (now - lastServoMoveTime >= SERVO_MOVE_INTERVAL_MS) {
+    lastServoMoveTime = now;
+
+    const int STEP_SIZE = 35;  // larger step for more dramatic movement
+    currentServoAngle += servoDirection * STEP_SIZE;
+
+    if (currentServoAngle >= SERVO_MAX_ANGLE) {
+      currentServoAngle = SERVO_MAX_ANGLE;
+      servoDirection = -1;
+    } else if (currentServoAngle <= SERVO_MIN_ANGLE) {
+      currentServoAngle = SERVO_MIN_ANGLE;
+      servoDirection = 1;
+    }
+
+    wandServo.write(currentServoAngle);
+  }
+}
+
+// ----- Helper: LED control -----
+void setLedSolid(bool on) {
+  digitalWrite(ledPin, on ? HIGH : LOW);
+  ledState = on;
+}
+
+void updateLedBlink() {
+  unsigned long now = millis();
+  if (now - lastLedToggleTime >= LED_BLINK_INTERVAL_MS) {
+    lastLedToggleTime = now;
+    ledState = !ledState;
+    digitalWrite(ledPin, ledState ? HIGH : LOW);
+  }
+}
+
+// ----- Setup -----
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(ledPin, OUTPUT);
+
+  wandServo.attach(servoPin);
+  setServoIdle();
+
+  currentState = IDLE;
+  setLedSolid(true);
+}
+
+// ----- Main Loop -----
+void loop() {
+  long distance = getDistanceCm();
+
+  // Debug printing
+  Serial.print("Distance (cm): ");
+  Serial.println(distance);
+
+  bool rawCatDetected = false;
+
+  // Only consider distances in a reasonable, valid window
+  if (distance &gt;= MIN_VALID_CM &amp;&amp; distance &lt;= MAX_VALID_CM &amp;&amp;
+      distance &lt;= DETECT_THRESHOLD_CM) {
+    rawCatDetected = true;
+  }
+
+  // Simple debouncing / confirmation: require consecutive hits
+  bool catDetected = false;
+  if (rawCatDetected) {
+    detectHitCount++;
+    if (detectHitCount &gt;= REQUIRED_HITS) {
+      catDetected = true;
+      detectHitCount = REQUIRED_HITS; // cap
+    }
+  } else {
+    // If we get a miss, slowly decrement the hit count
+    if (detectHitCount &gt; 0) {
+      detectHitCount--;
+    }
+  }
+
+  unsigned long now = millis();
+
+  switch (currentState) {
+    case IDLE:
+      setServoIdle();
+      setLedSolid(true);
+
+      if (catDetected) {
+        currentState       = PLAY;
+        lastDetectTime     = now;
+        lastLedToggleTime  = now;
+        lastServoMoveTime  = now;
+      }
+      break;
+
+    case PLAY:
+      updateLedBlink();
+      updateServoPlayMotion();
+
+      if (catDetected) {
+        lastDetectTime = now;
+      }
+
+      if (now - lastDetectTime &gt; PLAY_TIMEOUT_MS) {
+        currentState = IDLE;
+      }
+      break;
+  }
+
+  delay(50);
+}</code></pre>
+
+  <h3>How the Code Works</h3>
+  <p>
+    The sketch defines two states:
+  </p>
+  <ul>
+    <li>
+      <strong>IDLE</strong>: the servo is centered and the LED is solid. The Arduino keeps measuring distance but does not move the toy.
+    </li>
+    <li>
+      <strong>PLAY</strong>: the servo sweeps between about 20 and 160 degrees using a fast step size so the wand moves dramatically, and the LED blinks.
+    </li>
+  </ul>
+  <p>
+    The ultrasonic sensor reading is filtered in two ways. First, the code only accepts measurements within a reasonable band (between 5&nbsp;cm and 90&nbsp;cm). Second, the logic requires several consecutive detections within the threshold distance before it considers the cat to be present. This reduces false triggers from noisy readings.
+  </p>
+  <p>
+    When a valid detection is confirmed, the state switches to PLAY, and a timer is started. Any new detection while playing refreshes the timer. After the specified timeout in milliseconds has passed without seeing anything in range, the toy returns to IDLE.
+  </p>
+
+  <h2>Enclosure and Physical Execution</h2>
+  <p>
+    All electronics are mounted inside a cardboard box that serves as both the toy housing and a safety barrier. The Arduino, breadboard, and wiring are fixed to an internal base panel. Wires pass through small holes that are reinforced with tape so that pulling on the wand or power cable does not stress the connections.
+  </p>
+  <p>
+    For foster kittens under two pounds, a reinforced cardboard box is strong enough to withstand pouncing, batting, and climbing while remaining light, cheap, and easy to recycle or replace. The ultrasonic sensor and LED are exposed through small cutouts, and the servo is mounted so that only the wand itself extends outside the box.
+  </p>
+
+  <!-- Replace src with a nice glamour shot of the finished toy -->
+  <!--
+  <img src="images/final-assembly.jpg" alt="Final assembled cat toy with cardboard enclosure">
+  <p class="caption">Final assembled PawsOn cat toy enclosure with all electronics sealed inside.</p>
+  -->
+
+  <h2>Demo Video</h2>
+  <p>
+    The video below demonstrates the full interaction: idle mode, detection when a kitten or hand approaches, activation of the servo and LED, and automatic shutoff after the cat moves away.
+  </p>
+
+  <!-- Replace with your actual video link or embed -->
+  <p>
+    Video link:
+    <a href="YOUR_DEMO_VIDEO_URL_HERE" target="_blank" rel="noopener">
+      Watch the PawsOn Cat Toy demo
+    </a>
+  </p>
+
+  <!-- Or, if you host an MP4 directly, you can embed it:
+  <video controls width="640">
+    <source src="videos/demo.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  -->
+
+  <h2>Reflection and Possible Improvements</h2>
+  <p>
+    If I had more time, I would experiment with multiple play patterns, such as random pauses or shorter sweeps, add an on–off switch for humans, and design a more permanent enclosure in wood or acrylic. I would also tune the detection threshold so that it is even more robust in cluttered rooms and add a safety timeout that enforces a maximum play duration per session.
+  </p>
+
+</body>
+</html>
