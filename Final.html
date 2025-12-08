@@ -122,11 +122,8 @@
 
   <h3>System Diagram</h3>
 
-  <!-- Replace src with your photo of the block diagram -->
-  <!--
-  <img src="images/block-diagram.jpg" alt="Block diagram of ultrasonic sensor to Arduino to servo and LED">
+  <img src="finalcircut.png" alt="Block diagram of ultrasonic sensor to Arduino to servo and LED">
   <p class="caption">High-level block diagram: Ultrasonic sensor input drives the Arduino, which controls the servo motor and LED outputs.</p>
-  -->
 
   <p>
     At a high level, the ultrasonic sensor feeds distance information into the Arduino. The Arduino runs a small state machine that decides whether the toy is idle or playing. In play mode it drives the servo motor with a sweeping motion and blinks the LED; in idle mode it centers the servo and holds the LED on solid.
@@ -134,11 +131,10 @@
 
   <h3>Schematic</h3>
 
-  <!-- Replace src with your clean schematic image export -->
-  <!--
-  <img src="images/schematic.jpg" alt="Schematic of the cat toy circuit">
+  
+  <img src="finalschematic.png" alt="Schematic of the cat toy circuit">
   <p class="caption">Schematic showing the ultrasonic sensor, servo motor, LED, and Arduino connections.</p>
-  -->
+
 
   <p>
     Key connections from the schematic:
@@ -154,11 +150,8 @@
 
   <h3>Physical Circuit</h3>
 
-  <!-- Replace src with your photo of the final wired circuit / inside the box -->
-  <!--
-  <img src="images/circuit-photo.jpg" alt="Breadboard and Arduino wiring for the cat toy">
+  <img src="boxphoto.png" alt="Breadboard and Arduino wiring for the cat toy">
   <p class="caption">Physical wiring of the circuit, later enclosed inside the cardboard box.</p>
-  -->
 
   <p>
     The circuit was first prototyped on a breadboard, then transferred into the cardboard enclosure. Power and ground lines are shared along simple bus rails, and all joints are taped or hot-glued so nothing can be tugged loose by the kittens. The servo is mechanically mounted so that only the wand and a short linkage are visible outside the box.
@@ -378,11 +371,8 @@ void loop() {
     For foster kittens under two pounds, a reinforced cardboard box is strong enough to withstand pouncing, batting, and climbing while remaining light, cheap, and easy to recycle or replace. The ultrasonic sensor and LED are exposed through small cutouts, and the servo is mounted so that only the wand itself extends outside the box.
   </p>
 
-  <!-- Replace src with a nice glamour shot of the finished toy -->
-  <!--
-  <img src="images/final-assembly.jpg" alt="Final assembled cat toy with cardboard enclosure">
-  <p class="caption">Final assembled PawsOn cat toy enclosure with all electronics sealed inside.</p>
-  -->
+  <img src="finaltoy.png" alt="Final assembled cat toy with cardboard enclosure">
+
 
   <h2>Demo Video</h2>
   <p>
@@ -397,16 +387,11 @@ void loop() {
     </a>
   </p>
 
-  <!-- Or, if you host an MP4 directly, you can embed it:
-  <video controls width="640">
-    <source src="videos/demo.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-  -->
+
 
   <h2>Reflection and Possible Improvements</h2>
   <p>
-    If I had more time, I would experiment with multiple play patterns, such as random pauses or shorter sweeps, add an on–off switch for humans, and design a more permanent enclosure in wood or acrylic. I would also tune the detection threshold so that it is even more robust in cluttered rooms and add a safety timeout that enforces a maximum play duration per session.
+    If I had more time, I would experiment with multiple play patterns, such as random pauses or shorter sweeps, and design a more permanent enclosure in wood or acrylic. I would also tune the detection threshold so that it is even more robust in cluttered rooms and add a safety timeout that enforces a maximum play duration per session. Also, for this project Ised ai to help when I was stuck with code, or needed to double check calculations. Also, to edit my writing so there are few errors. All ideas are my own. 
   </p>
 
 </body>
