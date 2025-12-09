@@ -1,0 +1,19 @@
+Summary,Description,Issue Type,Priority,Labels
+Review project management task sheet,"Review the Google Sheet once Jeff sends the raw dump and begin evaluating task size and split requirements.",Task,Medium,pm
+Organize tasks into buckets,"Sort tasks into the default bucket and reorganize into correct groups/buckets as needed.",Task,Medium,pm
+Identify oversized tasks,"Flag tasks that appear overly broad or that an engineer would take more than three days to complete.",Task,Medium,pm
+Load all existing tasks into PM system,"Add all current tasks into Planner/Jira/temporary Sheets for tracking.",Task,High,pm
+Track OpenTable September data ticket,"Monitor the status of the missing September OpenTable dataset and follow up once contacts are shared.",Task,High,r44
+Understand R44 project scope,"Review the Restaurant 44 ML and operations intelligence project to understand deliverables and workflow.",Task,Medium,r44
+Prepare for API vs BOH data comparison,"Be ready to run comparison on API vs BOH reservation tables when assigned.",Task,Medium,r44
+Re-layout homepage based on Symphony,"Update homepage layout in Figma using Symphony AI design cues; deliver new draft today.",Task,High,web
+Create Figma vision board,"Build the shared vision board, invite Nick, add visual inspiration, structures, and messaging examples.",Task,High,web
+Simplify homepage messaging,"Replace vague terms with clear concepts like 'build AI agents' and outcome-based phrasing.",Task,High,web
+Extract 4–5 manifesto headlines,"Pull strong, punchy headline phrases from the Founders Manifesto for website hero sections.",Task,High,web
+Finalize 4-item header menu,"Set a stable top-level navigation with four items plus Get Started.",Task,Medium,web
+Replace inconsistent AI images,"Begin selecting or generating new imagery to replace inconsistent current assets; consider Nano Banana GIFs.",Task,Low,web
+Add CTAs to homepage,"Include Book a Demo, Get Started, and Agent Readiness Audit CTAs in layout.",Task,Medium,web
+Check for Chris’s planned copy updates,"Make space for copy Chris is writing (MANIFESTO page, Vertical AI, Trust & Context).",Task,Low,web
+Brainstorm George Lucas guardrail analogy,"Create one idea that ties the George Lucas bodyguard anecdote into how DAAN/guardrails work.",Task,Low,creative
+Prep for upcoming design alignment with Nick and Chris,"Ensure homepage updates and the vision board are ready before next working session.",Task,Medium,web
+Confirm Level Up training link,"Check for Jeff’s Level Up training link and log in once received.",Task,Low,admin
